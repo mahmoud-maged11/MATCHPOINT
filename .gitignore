@@ -216,3 +216,56 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+# ==========================
+# MATCHPOINT Project
+# ==========================
+
+# IDE Settings
+.idea/
+.vscode/
+
+# Environment Variables
+.env.*
+!.env.example
+!.env.*.example
+
+# React / Node.js
+node_modules/
+dist/
+.vite/
+coverage/
+
+# dbt
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/profiles.yml
+.user.yml
+
+# Apache Airflow
+airflow/logs/
+airflow/airflow.db
+airflow/airflow.cfg
+airflow/webserver_config.py
+
+# Database Local Storage
+postgres_data/
+clickhouse_data/
+
+# Database Backups
+*.bak
+*.dump
+
+# Scraping
+scrapers/output/
+scrapers/downloads/
+scrapers/browser_profiles/
+scrapers/storage_state.json
+
+# Power BI
+*.pbix.tmp
+*.pbit.tmp
+
+# Operating System Files
+.DS_Store
+Thumbs.db
