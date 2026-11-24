@@ -1,0 +1,59 @@
+name: matchpoint
+
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: matchpoint_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${TZ}
+
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    networks:
+      - matchpoint_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.8
+    container_name: matchpoint_clickhouse
+    restart: unless-stopped
+
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      TZ: ${TZ}
+
+    ports:
+      - "127.0.0.1:${CLICKHOUSE_PORT}:8123"
+      - "127.0.0.1:9000:9000"
+
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+
+    networks:
+      - matchpoint_network
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+
+networks:
+  matchpoint_network:
+    driver: bridge

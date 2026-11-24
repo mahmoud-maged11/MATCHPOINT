@@ -214,5 +214,109 @@
 
 # \*MATCHPOINT: Your Next Opportunity Starts Here.\*
 
+## Getting Started
 
+### Prerequisites
+
+- Git
+- Docker Desktop
+- Docker Compose
+- Python 3.12 (recommended)
+- DBeaver (recommended)
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/mahmoud-maged11/MATCHPOINT.git
+cd MATCHPOINT
+```
+
+### 2. Configure Environment Variables
+
+```bash
+cp .env.example .env
+```
+
+Update the `.env` file with your local credentials. Never commit the `.env` file to GitHub.
+
+### 3. Start Docker Services
+
+```bash
+docker compose up -d
+```
+
+### 4. Verify Running Services
+
+```bash
+docker compose ps
+```
+
+### 5. Database Connections
+
+| Setting | PostgreSQL | ClickHouse |
+|---|---|---|
+| Host | localhost | localhost |
+| Port | 5432 | 8123 |
+| Database | matchpoint | matchpoint_analytics |
+| Username | matchpoint | matchpoint |
+| Password | From .env | From .env |
+
+For communication between Docker containers, use the service names `postgres` and `clickhouse` instead of `localhost`.
+
+### 6. Stop Docker Services
+
+```bash
+docker compose down
+```
+
+Do not use `docker compose down -v` unless you intentionally want to delete stored database data.
+
+## Repository Structure
+
+```text
+MATCHPOINT/
+├── scrapers/
+├── backend/
+├── database/
+│   └── migrations/
+├── dbt/
+├── airflow/
+│   └── dags/
+├── clickhouse/
+├── analytics/
+├── frontend/
+├── tests/
+├── docs/
+│   └── data_contract.md
+├── .env.example
+├── .gitignore
+├── docker-compose.yml
+└── README.md
+```
+
+## Development Workflow
+
+1. Pull the latest changes from the main branch.
+2. Create a feature branch for your task.
+3. Implement and test your changes.
+4. Commit changes with descriptive messages.
+5. Push your feature branch.
+6. Open a Pull Request for review.
+7. Merge approved changes into main.
+
+## Data Contract
+
+All data collection and transformation components must follow the specification defined in [Data Contract](docs/data_contract.md).
+
+## Current Infrastructure Status
+
+- PostgreSQL 16: Configured and tested.
+- ClickHouse 25.8: Configured and tested.
+- Docker networking: Configured.
+- Persistent database storage: Configured.
+- Apache Airflow: Planned.
+- dbt: Planned.
+- FastAPI backend: Planned.
+- React frontend: Planned.
+- Power BI dashboards: Planned.
 
