@@ -166,3 +166,40 @@ def test_skill_change_changes_hash(valid_data):
     second = Opportunity(**updated_data)
 
     assert generate_content_hash(first) != generate_content_hash(second)
+
+
+
+def test_equivalent_decimal_hash(valid_data):
+
+    first = Opportunity(
+        **valid_data,
+        salary_min="5000"
+    )
+
+    second = Opportunity(
+        **valid_data,
+        salary_min="5000.00"
+    )
+
+    assert (
+        generate_content_hash(first)
+        == generate_content_hash(second)
+    )
+
+
+def test_salary_period_changes_hash(valid_data):
+
+    first = Opportunity(
+        **valid_data,
+        salary_period="monthly"
+    )
+
+    second = Opportunity(
+        **valid_data,
+        salary_period="yearly"
+    )
+
+    assert (
+        generate_content_hash(first)
+        != generate_content_hash(second)
+    )

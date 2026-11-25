@@ -81,6 +81,15 @@ DatePrecision = Literal[
     "unknown"
 ]
 
+SalaryPeriod = Literal[
+    "hourly",
+    "daily",
+    "weekly",
+    "monthly",
+    "yearly",
+    "project",
+    "unknown"
+]
 
 class Opportunity(BaseModel):
     
@@ -132,6 +141,7 @@ class Opportunity(BaseModel):
     )
 
     currency: str | None = None
+    salary_period: SalaryPeriod | None = None
 
     # Dates
 
@@ -150,9 +160,19 @@ class Opportunity(BaseModel):
     # Metadata
 
     status: OpportunityStatus = "unknown"
+    source_status_raw: str | None = None
     raw_payload: dict
 
     # Validators
+
+    @field_validator("organization")
+    @classmethod
+    def clean_organization(cls, value):
+
+        if value is None:
+            return None
+
+        return " ".join(value.split()) or None
 
     @field_validator("title")
     @classmethod

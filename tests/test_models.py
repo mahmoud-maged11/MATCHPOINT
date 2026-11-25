@@ -202,3 +202,30 @@ def test_reject_legacy_field(valid_data):
 
     with pytest.raises(ValidationError):
         Opportunity(**valid_data)
+
+
+
+def test_invalid_salary_period(valid_data):
+
+    valid_data["salary_period"] = "invalid"
+
+    with pytest.raises(ValidationError):
+        Opportunity(**valid_data)
+
+
+def test_valid_salary_period(valid_data):
+
+    valid_data["salary_period"] = "monthly"
+
+    result = Opportunity(**valid_data)
+
+    assert result.salary_period == "monthly"
+
+
+def test_empty_organization(valid_data):
+
+    valid_data["organization"] = "   "
+
+    result = Opportunity(**valid_data)
+
+    assert result.organization is None

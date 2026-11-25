@@ -1,8 +1,8 @@
 # MATCHPOINT Data Contract
 
-**Version:** 2.0.0
+**Version:** 2.1.0
 
-**Status:** Proposed specification, pending team review and implementation
+**Status:** Implemented in collection models and Wuzzuf adapter; pending team review and warehouse integration
 
 **Owners:** Data Collection & Data Warehouse Teams
 
@@ -57,6 +57,7 @@ The architecture must preserve original source data, support multiple opportunit
 | salary_min | NUMERIC | No |
 | salary_max | NUMERIC | No |
 | currency | VARCHAR | No |
+| salary_period | VARCHAR | No |
 
 ### 2.5 Dates and Timestamps
 
@@ -77,6 +78,7 @@ The architecture must preserve original source data, support multiple opportunit
 |---|---|---|
 | content_hash | TEXT | Yes, generated during ingestion |
 | status | VARCHAR | Yes |
+| source_status_raw | TEXT | No |
 | raw_payload | JSONB | Yes, in Bronze |
 
 ### 2.7 Canonical Opportunity Identity
@@ -188,6 +190,39 @@ Relative dates may be normalized when a reliable observation timestamp is availa
 
 Date-only deadlines must not be interpreted as exact expiration timestamps.
 
+### 4.7 Salary Period
+
+- hourly
+- daily
+- weekly
+- monthly
+- yearly
+- project
+- unknown
+
+Salary periods must not be inferred from salary amounts.
+
+Missing salary periods must remain null.
+
+Hidden salary information must not be intentionally collected
+or retained in standardized records.
+
+### 4.8 Source Status and Effective Status
+
+source_status_raw preserves the original source status.
+
+status represents the effective opportunity status at observation time.
+
+Explicit closed and expired source statuses take precedence.
+
+An active source status may be classified as expired when
+the deadline has passed under the documented source-specific policy.
+
+An active status does not guarantee that applications remain available.
+
+Absence from a bounded collection run must not be interpreted
+as evidence that a listing has expired or closed.
+
 ## 5. Data Rules
 
 ### 5.1 General Rules
@@ -197,7 +232,10 @@ Date-only deadlines must not be interpreted as exact expiration timestamps.
 - Missing information must not be fabricated.
 - Required fields must be validated before standardized ingestion.
 - Empty or whitespace-only required strings are invalid.
-- Original source values must be preserved in the raw payload.
+- Preserve permitted and relevant source values in raw_payload.
+- Raw payloads may be filtered or sanitized by source adapters.
+- Hidden financial and organization metadata must not be intentionally retained.
+- Internal analytics and unrelated source metadata must be excluded.
 
 ### 5.2 Arrays
 
@@ -224,12 +262,19 @@ Unknown must not be combined with known standardized values in the same array.
 - Relative dates must be identified as approximate.
 - The observation time used for relative date normalization must be reliable.
 - Missing deadlines must not automatically indicate expired opportunities.
+- Unknown source timezones must not be fabricated.
+- Date-only values retain date_only precision without an exact timestamp.
+- Wuzzuf timezone-naive deadlines use a conservative 12-hour UTC margin.
+- Wuzzuf date-only deadlines are treated as valid through the end of the stated day.
+- These Wuzzuf deadline rules are project policies, not verified source guarantees.
 
 ### 5.4 Salary and Experience Rules
 
 - Salary values must be numeric and non-negative.
 - Minimum salary must not exceed maximum salary.
 - Currency codes must follow ISO 4217.
+- Salary periods must use standardized values when available.
+- Hidden salary amounts, currency and period must remain null.
 - Experience years must be numeric and non-negative.
 - Minimum experience must not exceed maximum experience.
 - Missing maximum experience must remain null when only a minimum is provided.
@@ -265,6 +310,16 @@ Relative date labels and derived approximate timestamps must not trigger false c
 
 Unordered arrays must be normalized before hashing.
 
+Equivalent numeric representations must produce identical hashes.
+
+For example, 5000 and 5000.00 represent the same numeric value.
+
+Salary period and source status participate in standardized content hashing.
+
+Changes to hashing rules must be coordinated before persistent ingestion.
+
+Effective status changes may affect the content hash.
+
 The source listing identity and content hash must be used together to detect content changes.
 
 Unchanged listings must still have their last_seen_at updated.
@@ -299,7 +354,7 @@ The application may display one canonical opportunity with multiple source links
 
 ### 7.1 Bronze Layer
 
-Stores raw source records, original payloads, collection timestamps, source metadata, and ingestion information.
+Stores standardized source records, permitted source payloads, collection timestamps, source metadata, and ingestion information.
 
 Responsibilities include:
 
@@ -354,7 +409,7 @@ Analytical datasets must preserve consistent business definitions and avoid coun
 - Collect data from approved sources.
 - Implement source adapters.
 - Validate standardized records.
-- Preserve raw source data.
+- Preserve permitted source data and sanitized payloads.
 - Implement content hashing.
 - Load collected records into PostgreSQL.
 - Integrate curated opportunities with the backend.
@@ -412,3 +467,4 @@ Outstanding implementation tasks must be recorded in docs/pending_tasks.md.
 |---|---|
 | 1.0.0 | Initial data contract |
 | 2.0.0 | Multiple employment types and work modes, source listing identity, canonical opportunities, date precision, experience ranges, category separation, content hashing, and deduplication rules |
+| 2.1.0 | Added salary period, original source status, conservative deadline handling, numeric hash normalization, and source payload minimization |

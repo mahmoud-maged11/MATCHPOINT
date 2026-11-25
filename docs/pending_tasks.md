@@ -1,8 +1,8 @@
 # MATCHPOINT Pending Tasks
 
-**Data Contract Version:** 2.0.0
+**Data Contract Version:** 2.1.0
 
-**Last Updated:** 2026-11-24
+**Last Updated:** 2026-11-25
 
 ## Priority Definitions
 
@@ -27,7 +27,12 @@
 - [x] Verify updated parser against four local job cards.
 - [x] Update content hashing implementation.
 - [x] Pass all 10 content hashing tests.
-- [x] Pass all 30 model and hashing tests.- [ ] Verify consistency between documentation and code.
+- [x] Pass all 30 model and hashing tests.
+- [x] Prepare Data Contract v2.1.0.
+- [x] Add salary_period and source_status_raw.
+- [x] Update architecture decisions for Wuzzuf API collection.
+- [ ] Review updated documentation against implementation.
+- [ ] Obtain team approval for Data Contract v2.1.0.
 - [ ] Commit and push updated specification.
 - [ ] Communicate updated contract to all team members.
 
@@ -107,26 +112,65 @@
 - [x] Extract original experience labels.
 - [x] Extract minimum and maximum experience years.
 - [x] Extract opportunity categories.
-- [x] Replace real HTML fixtures in automated tests with synthetic fixtures and exclude real source HTML from Git.- [x] Implement and pass 15 automated Wuzzuf parser tests using synthetic HTML fixtures.- [ ] Complete final adapter validation.
+- [x] Replace real HTML fixtures in automated tests with synthetic fixtures and exclude real source HTML from Git.
+- [x] Implement and pass 15 automated Wuzzuf parser tests using synthetic HTML fixtures.
+- [x] Complete bounded live adapter validation.
+- [ ] Complete source-to-Bronze integration validation.
 
 
 ### Pending
 
 
-- [ ] Investigate authorized live collection methods.
-- [ ] Resolve HTTP 403 through an authorized access method.
-- [ ] Implement live data collection.
-- [ ] Implement pagination.
-- [ ] Investigate job details page structure.
-- [ ] Extract job descriptions.
-- [ ] Extract job requirements.
-- [ ] Extract education requirements.
-- [ ] Extract salary information when available.
-- [ ] Implement source-specific status detection.
+- [x] Investigate authorized live collection methods.
+- [x] Establish an alternative live collection method using the JSON API.
+- [x] Implement live data collection.
+- [x] Implement pagination.
+- [ ] Investigate public job detail page availability if required.
+- [x] Extract job descriptions.
+- [x] Extract job requirements.
+- [x] Extract education requirements.
+- [x] Extract salary information when available.
+- [x] Implement source-specific status detection.
 - [x] Handle missing and malformed job cards in local HTML fixtures.
 - [x] Verify that invalid records do not interrupt valid record extraction.
 - [x] Preserve rejected records with raw HTML, error details, and collection run ID in memory.
-**Current blocker:** HTTP 403 Forbidden during direct HTTP requests. Local HTML parsing is functional, but automated live collection has not been established.
+### API Collection Milestone
+
+- [x] Implement Wuzzuf API adapter.
+- [x] Implement Wuzzuf API mapper.
+- [x] Collect newest listings using descending postedAt.
+- [x] Request active source listings.
+- [x] Filter Egyptian opportunities using country code EG.
+- [x] Implement company information caching.
+- [x] Handle missing company responses.
+- [x] Preserve hidden company and salary fields as null.
+- [x] Extract salary periods.
+- [x] Preserve original source status.
+- [x] Validate source URLs and listing identifiers.
+- [x] Implement selected source payload retention.
+- [x] Handle malformed API records.
+- [x] Implement collection statistics.
+- [x] Implement conservative deadline evaluation.
+- [x] Handle date-only deadlines.
+- [x] Pass all 130 automated tests.
+- [x] Collect 30 live Egyptian opportunities.
+- [x] Verify zero duplicate IDs and zero invalid records in the live sample.
+
+### Remaining Integration Work
+
+- [ ] Integrate PostgreSQL storage after Bronze schema approval.
+- [ ] Persist collection runs and invalid records.
+- [ ] Implement incremental checkpoints.
+- [ ] Implement content version history.
+- [ ] Implement lifecycle reconciliation.
+- [ ] Review source payload and URL privacy.
+- [ ] Confirm production collection limits and scheduling.
+- [ ] Verify API stability during scheduled execution.
+
+**Current limitation:** Direct live HTML collection remains restricted.
+
+**Integration dependency:** Physical Bronze schema design and migrations
+must be coordinated with the Data Warehouse owner.
 
 ## 4. Additional Source Adapters
 
@@ -191,7 +235,10 @@ For each source:
 - [x] Normalize unordered arrays before hashing.
 - [x] Exclude volatile relative date values.
 - [x] Exclude collection timestamps.
-- [x] Verify content hashing with 10 automated tests.
+- [x] Verify content hashing with 12 automated tests.
+- [x] Normalize equivalent decimal representations.
+- [x] Include salary period and original source status in hashing.
+- [ ] Define hash version compatibility before future schema changes.
 - [ ] Exclude future ingestion metadata from content hashing.
 - [ ] Define stable source listing identity.
 - [ ] Define source-specific URL identity rules.
@@ -214,7 +261,7 @@ For each source:
 
 **Priority:** P1
 
-- [ ] Review Data Contract v2.0.0.
+- [ ] Review Data Contract v2.1.0.
 - [ ] Design Bronze, Silver, and Gold schemas.
 - [ ] Design physical source listing tables.
 - [ ] Design raw observation and content history tables.
@@ -330,7 +377,8 @@ For each source:
 
 **Priority:** P2
 
-- [ ] Implement unit tests.
+- [x] Implement collection-layer unit tests (130 passing).
+- [ ] Implement unit tests for remaining components.
 - [ ] Implement integration tests.
 - [ ] Implement end-to-end pipeline tests.
 - [ ] Validate data contract consistency.
@@ -360,11 +408,13 @@ For each source:
 
 | ID | Blocker | Owner | Status |
 |---|---|---|---|
-| B-001 | Wuzzuf HTTP 403 | Mahmoud | Open |
+| B-001 | Wuzzuf direct HTML HTTP 403 | Mahmoud | Non-blocking for tested API collection |
 | B-002 | Python models incompatible with Data Contract v2.0.0 | Mahmoud | Resolved |
 | B-003 | Parser incompatible with new array fields | Mahmoud | Resolved |
 | B-004 | Physical Bronze ingestion schema not implemented | Momen | Open |
 | B-005 | Content history and retention policy not finalized | Mahmoud / Momen | Open |
+| B-006 | Storage integration awaiting agreed Bronze schema | Mahmoud / Momen | Open |
+| B-007 | Opportunity lifecycle reconciliation not implemented | Mahmoud / Momen | Open |
 
 ## 15. Task Management Rules
 
