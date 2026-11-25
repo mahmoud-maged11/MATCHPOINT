@@ -32,6 +32,11 @@ SOURCE_CONFIGS = {
         base_url="https://forasna.com",
         enabled=True,
     ),
+
+    "egyincs": SourceConfig(
+        base_url="https://egyincs.com",
+        enabled=True,
+    ),
 }
 
 

@@ -33,7 +33,7 @@
 - [x] Update architecture decisions for Wuzzuf API collection.
 - [ ] Review updated documentation against implementation.
 - [ ] Obtain team approval for Data Contract v2.1.0.
-- [ ] Commit and push updated specification.
+- [x] Commit and push Data Contract v2.1.0 to the feature branch.
 - [ ] Communicate updated contract to all team members.
 
 ## 2. Data Collection Infrastructure
@@ -68,7 +68,7 @@
 - [x] Preserve local HTML parsing for disabled sources.
 - [x] Pass 6 HTTPClient automated tests.
 - [x] Pass all 69 automated tests.
-- [ ] Configure remaining sources.
+- [ ] Configure remaining seven sources.
 - [x] Implement per-client rate limiting.
 - [x] Use monotonic clock for request interval calculation.
 - [x] Protect rate limiter state using thread locks.
@@ -179,7 +179,7 @@ must be coordinated with the Data Warehouse owner.
 **Priority:** P1
 
 - [x] Forasna (collector implementation and bounded live validation)
-- [ ] Egyincs
+- [x] Egyincs (collector implementation and bounded live validation)
 - [ ] ITIDA
 - [ ] NTI
 - [ ] Bayt
@@ -238,6 +238,79 @@ For each source:
 - [ ] Implement incremental checkpoints.
 - [ ] Implement lifecycle reconciliation.
 - [ ] Verify source-to-Bronze integration.
+
+
+### Egyincs Collection Milestone
+
+- [x] Investigate WordPress REST API and robots.txt.
+- [x] Identify jobs and lp_course endpoints.
+- [x] Identify company and taxonomy endpoints.
+- [x] Implement API collector and source-specific mapper.
+- [x] Implement bounded page-based pagination.
+- [x] Implement company information caching.
+- [x] Implement duplicate source ID detection.
+- [x] Implement jobs and courses collection quotas.
+- [x] Implement taxonomy-based classification.
+- [x] Implement title-based classification fallback.
+- [x] Recognize graduate programs.
+- [x] Normalize internship and scholarship classifications.
+- [x] Normalize volunteering, freelance and competition classifications.
+- [x] Normalize training and event classifications.
+- [x] Extract source-provided categories and candidate skills.
+- [x] Normalize experience labels and numeric bounds.
+- [x] Extract disclosed salary ranges.
+- [x] Normalize Egyptian pound currency to EGP.
+- [x] Normalize salary periods.
+- [x] Reject invalid and non-finite salary amounts.
+- [x] Preserve permitted selected source metadata.
+- [x] Integrate Egyincs with the shared CLI.
+- [x] Fix malformed JOB_FIELDS concatenation.
+- [x] Add regression test for required API fields.
+- [x] Pass 75 Egyincs-specific automated tests.
+- [x] Pass all 260 collection-layer automated tests.
+- [x] Collect 20 opportunities across three API pages.
+- [x] Verify 20 unique source IDs and zero invalid records.
+- [x] Verify four targeted live opportunity mappings.
+- [x] Verify two disclosed monthly salaries through the list endpoint.
+- [x] Validate seven special source taxonomy groups.
+- [x] Map 13 special-type observations representing 12 unique listings.
+
+### Egyincs Remaining Integration Work
+
+**Priority:** P1/P2
+
+- [ ] Verify application availability and effective lifecycle status.
+- [ ] Investigate deadline and expiration field semantics.
+- [ ] Distinguish WordPress publication status from application status.
+- [ ] Review publication dates versus republished listing dates.
+- [ ] Normalize valid application URLs without a scheme.
+- [ ] Preserve functional application URL query parameters.
+- [ ] Review external URL privacy and tracking parameters.
+- [ ] Normalize placeholder values in requirements and other fields.
+- [ ] Improve work mode fallback using source type taxonomies.
+- [ ] Review ambiguous initiative classification.
+- [ ] Review multi-label opportunity classification.
+- [ ] Review conflicting experience labels and ranges.
+- [ ] Review salary display modes beyond explicit ranges.
+- [ ] Review embedded taxonomy terms against assigned term IDs.
+- [ ] Distinguish candidate requirements from taught skills.
+- [ ] Enrich course provider, duration, fees and certificate information.
+- [ ] Enrich course registration URLs and delivery modes.
+- [ ] Separate opportunity destination from applicant eligibility location.
+- [ ] Review conflicting location taxonomies and descriptions.
+- [ ] Review editorial content included in descriptions.
+- [ ] Improve permitted invalid record diagnostics.
+- [ ] Review cross-source application URL matching evidence.
+- [ ] Improve jobs and courses quota allocation.
+- [ ] Handle unused collection quota redistribution.
+- [ ] Review rare opportunity type coverage.
+- [ ] Review pagination when source records change during collection.
+- [ ] Handle out-of-range WordPress pagination responses.
+- [ ] Confirm authorized production collection limits.
+- [ ] Integrate PostgreSQL storage and persistent collection runs.
+- [ ] Implement incremental collection and lifecycle reconciliation.
+- [ ] Verify source-to-Bronze integration.
+
 
 ## 5. Data Validation and Normalization
 
@@ -417,7 +490,7 @@ For each source:
 
 **Priority:** P2
 
-- [x] Implement collection-layer unit tests (185 passing).
+- [x] Implement collection-layer unit tests (260 passing).
 - [ ] Implement unit tests for remaining components.
 - [ ] Implement integration tests.
 - [ ] Implement end-to-end pipeline tests.
@@ -455,6 +528,9 @@ For each source:
 | B-005 | Content history and retention policy not finalized | Mahmoud / Momen | Open |
 | B-006 | Storage integration awaiting agreed Bronze schema | Mahmoud / Momen | Open |
 | B-007 | Opportunity lifecycle reconciliation not implemented | Mahmoud / Momen | Open |
+| B-008 | Persistent incremental checkpoints depend on ingestion design | Mahmoud / Momen / Andrew | Open |
+| B-009 | Production source authorization and rate policies require confirmation | Mahmoud | Open for production |
+| B-010 | Egyincs application availability cannot yet be reliably established | Mahmoud | Non-blocking for bounded collection |
 
 ## 15. Task Management Rules
 
@@ -465,3 +541,105 @@ For each source:
 - Data contract changes must be communicated to affected team members.
 - Documentation must remain synchronized with implementation.
 - Update this document before completing each development milestone.
+
+## 16. Retrospective Infrastructure Review
+
+### Status Definitions
+
+- Completed and tested: implemented and verified within the stated scope.
+- Implemented, needs validation: implementation exists but additional verification is required.
+- Deferred: intentionally postponed until a later development milestone.
+- Blocked: depends on an unresolved external or architectural dependency.
+
+### Completed and Tested
+
+- [x] Initialize GitHub repository and project directory structure.
+- [x] Merge initial project setup pull request.
+- [x] Create component-specific feature branches.
+- [x] Configure initial Docker Compose infrastructure.
+- [x] Verify local PostgreSQL and ClickHouse connectivity during initial setup.
+- [x] Implement environment variable configuration.
+- [x] Exclude local credentials and real source HTML fixtures from Git.
+- [x] Implement shared browser client and automated tests.
+- [x] Verify shared collection CLI for implemented adapters.
+- [x] Implement shared date normalization utilities.
+- [x] Implement deterministic numeric and array hashing.
+- [x] Implement and test in-memory invalid record handling.
+- [x] Complete bounded collection validation for three source adapters.
+
+### Implemented, Needs Validation
+
+- [ ] Revalidate database containers and persistent volumes before ingestion.
+- [ ] Validate dependency compatibility with the target deployment Python version.
+- [ ] Validate browser client behavior against permitted live sources.
+- [ ] Verify logging timezone configuration.
+- [ ] Review retry behavior under real transient failures.
+- [ ] Review source-specific HTTP timeouts and collection budgets.
+- [ ] Verify date precision and timezone assumptions across all sources.
+- [ ] Review hashing behavior for relative dates and effective status changes.
+- [ ] Verify Forasna internship mapping for array-based employmentType values.
+- [ ] Verify Forasna malformed salary handling and hidden salary payload retention.
+- [ ] Review Wuzzuf hidden organization information in URLs and free text.
+- [ ] Review Wuzzuf raw employment and work mode metadata retention.
+- [ ] Revalidate Egyincs end-to-end collection after final field configuration fix.
+
+### Deferred: Shared Collection Reliability
+
+- [ ] Implement retry-aware and redirect-aware request pacing.
+- [ ] Coordinate rate limits across concurrent workers.
+- [ ] Review robots.txt wildcard matching and crawl-delay policies.
+- [ ] Validate redirect destinations before following requests.
+- [ ] Establish documented authorization and collection policies for every source.
+- [ ] Handle HTTP 429 and Retry-After consistently.
+- [ ] Define source-specific circuit breaking and failure isolation.
+- [ ] Define full initial collection versus incremental collection policies.
+- [ ] Implement persistent per-source and per-endpoint checkpoints.
+- [ ] Implement overlapping incremental collection windows.
+- [ ] Handle equal timestamps and stable pagination boundaries.
+- [ ] Advance checkpoints only after successful persistent ingestion.
+- [ ] Support partial runs and safe recovery after failures.
+- [ ] Define stale listing revalidation schedules.
+- [ ] Never infer closure solely from absence in bounded collection.
+- [ ] Implement persistent collection metrics and data quality reporting.
+- [ ] Define raw payload retention and privacy policies.
+- [ ] Exclude sensitive attributes from opportunity matching.
+- [ ] Review free-text descriptions for unnecessary personal information.
+- [ ] Implement controlled invalid record reprocessing.
+- [ ] Implement automated collection integration tests.
+
+### Deferred: Repository and Deployment
+
+- [ ] Confirm team repository permissions and branch protection.
+- [ ] Configure automated CI tests for pull requests.
+- [ ] Review dependency pinning and reproducible builds.
+- [ ] Align local Python dependencies with Airflow and dbt runtimes.
+- [ ] Build production scraper container.
+- [ ] Configure Docker networking and service health checks.
+- [ ] Verify credential management and environment isolation.
+- [ ] Implement database backup and restore procedures.
+- [ ] Validate complete scheduled execution through Airflow.
+- [ ] Review remaining team component status before integration.
+
+### Blocked: Persistent Ingestion
+
+- [ ] Approve physical Bronze schema with the Data Warehouse owner.
+- [ ] Approve source identity and uniqueness constraints.
+- [ ] Approve content version history and observation retention.
+- [ ] Implement PostgreSQL connection and transaction management.
+- [ ] Implement idempotent inserts and updates.
+- [ ] Persist collection runs and associate observations with run IDs.
+- [ ] Persist invalid records and permitted diagnostics.
+- [ ] Track first_seen_at and last_seen_at.
+- [ ] Detect new, unchanged and updated source listings.
+- [ ] Test rollback, retries and recovery without duplicate writes.
+- [ ] Integrate incremental checkpoints with committed transactions.
+- [ ] Validate complete source-to-Bronze ingestion.
+
+### Current Collection Milestone
+
+- Wuzzuf: implemented, bounded live validation completed, committed and pushed.
+- Forasna: implemented, bounded live validation completed, committed and pushed.
+- Egyincs: implemented and bounded live validation completed.
+- Remaining sources: seven.
+- Current automated test baseline: 260 passing.
+- Physical storage and production orchestration are not yet verified.

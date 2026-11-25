@@ -2,7 +2,7 @@
 
 **Version:** 2.1.0
 
-**Status:** Implemented in collection models, Wuzzuf and Forasna adapters; pending team review and warehouse integration
+**Status:** Implemented in collection models, Wuzzuf, Forasna and Egyincs adapters; pending team review and warehouse integration
 
 **Owners:** Data Collection & Data Warehouse Teams
 
@@ -314,6 +314,45 @@ Forasna uses JSON-LD JobPosting metadata and HTML detail fields.
 
 These implementation notes do not introduce new schema fields
 or change existing standardized values.
+
+
+### 5.7 Egyincs Source-Specific Implementation Notes
+
+Egyincs uses WordPress REST API jobs and lp_course records
+with selected embedded taxonomy information.
+
+- Numeric WordPress IDs identify individual source listings.
+- Source URLs preserve the original listing identity.
+- Course records map to training.
+- Source taxonomies provide primary opportunity classification evidence.
+- Selected title patterns resolve documented classification ambiguities.
+- Initiative classification uses a provisional fallback.
+- Explicitly disclosed salary ranges are normalized into numeric fields.
+- Invalid, non-finite and zero placeholder salary amounts are not retained
+  as confirmed salary values.
+- Recognized Egyptian pound labels map to EGP.
+- Recognized salary periods map to standardized values.
+- Salary periods are not inferred from amounts.
+- Original salary metadata is retained in selected raw_payload fields.
+- WordPress date_gmt provides publication timestamp evidence.
+- WordPress publish status is retained as source_status_raw.
+- Publication status does not establish application availability.
+- Effective status remains unknown without reliable lifecycle evidence.
+- Unverified closing dates are preserved without fabricating deadlines.
+- External application URLs are retained in selected raw_payload fields.
+- Dedicated age and gender taxonomies are excluded from structured matching fields.
+- Source-provided skills remain candidate skills until validated.
+- Course categories must not automatically become required skills.
+- Location taxonomies may represent applicant eligibility rather than
+  the actual opportunity destination.
+- Scheme-less application URLs and conflicting location information
+  require further normalization.
+
+These implementation notes do not introduce new standardized
+schema fields or change existing allowed values.
+
+The Data Contract remains v2.1.0.
+
 
 ## 6. Source Identity and Deduplication
 

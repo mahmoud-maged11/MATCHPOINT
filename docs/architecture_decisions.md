@@ -337,7 +337,7 @@ Hash compatibility must be managed before future schema changes.
 
 ## ADR-020: Source Payload Minimization
 
-**Status:** Implemented for Wuzzuf; broader review pending
+**Status:** Selected payload retention implemented for Wuzzuf, Forasna and Egyincs; broader privacy review pending
 
 **Decision:** Retain selected opportunity-related source information
 rather than the complete API response.
@@ -486,3 +486,160 @@ Missing application status is treated as unknown.
 - Bounded collection does not establish a complete source snapshot.
 - PostgreSQL ingestion, incremental collection and lifecycle
   reconciliation remain pending.
+
+
+## ADR-024: Egyincs WordPress REST API Collection
+
+**Status:** Implemented and validated through bounded live samples;
+production integration pending.
+
+### Collection Method
+
+- Use WordPress REST API endpoints jobs and lp_course.
+- Request selected fields and embedded taxonomy terms.
+- Resolve company names through the company endpoint.
+- Cache company information within each collection run.
+- Reuse the shared HTTP client and rate limiter.
+- Check robots.txt before collection requests.
+- Use bounded page-based pagination.
+- Detect duplicate source identifiers within each run.
+- Use a default allocation of approximately 75 percent jobs-endpoint
+  records and 25 percent course-endpoint records.
+- The jobs endpoint contains multiple opportunity types.
+- Use comma-separated field names generated with join.
+- Test required field configuration to prevent malformed requests.
+
+### Verification on 2026-11-25
+
+- 75 Egyincs-specific automated tests passed.
+- 260 total collection-layer automated tests passed.
+- Bounded run received 25 records across three pages.
+- 20 opportunities accepted, representing 20 unique IDs.
+- Zero invalid records and zero duplicate IDs in that run.
+- 15 records accepted from jobs and five from lp_course.
+- Normalized distribution: 12 jobs, three internships and five training opportunities.
+- Four targeted live mappings verified.
+- B.TECH listing 193330: 6700 to 8200 EGP monthly.
+- Sky listing 163611: 3600 to 7200 EGP monthly.
+- Both monthly salaries verified through the corrected list endpoint.
+- Seven special source taxonomy groups investigated.
+- 13 successful mapping observations representing 12 unique listings.
+- All 20 collected opportunities had unknown application status.
+
+### Limitations
+
+- The main bounded run preceded the final JOB_FIELDS correction.
+- Targeted list-endpoint verification passed after that correction.
+- Full collection regression after the final correction remains pending.
+- Bounded collection does not represent a complete source snapshot.
+- Source API stability and production collection limits are unverified.
+- Successful requests do not establish comprehensive authorization.
+- Collection quotas do not guarantee coverage of rare opportunity types.
+- Unused endpoint quotas are not automatically redistributed.
+- Course metadata enrichment remains pending.
+- Persistent storage and lifecycle reconciliation remain pending.
+
+## ADR-025: Egyincs Classification and Missing Information
+
+**Status:** Implemented and tested for observed examples;
+classification refinement pending.
+
+### Decisions
+
+- Use source taxonomy terms as primary classification evidence.
+- Use documented title patterns to resolve selected ambiguous cases.
+- Recognize graduate programs separately from internships.
+- Recognize conference titles as events in selected ambiguous cases.
+- Resolve observed internship and scholarship combinations using title evidence.
+- Classify observed job and freelance combinations as freelance.
+- Treat unclassified initiatives as training under a provisional fallback.
+- Do not treat publication status publish as proof of open applications.
+- Preserve unverified closing date information without inventing a deadline.
+- Preserve missing or unconfirmed application status as unknown.
+- Normalize explicitly disclosed salary ranges.
+- Treat zero placeholder salary amounts as missing.
+- Normalize recognized currency codes and salary periods.
+- Preserve unknown salary periods without inferring them from amounts.
+- Preserve selected external application URLs in raw_payload.
+- Do not treat course categories as required technical skills.
+
+### Remaining Work
+
+- Review provisional initiative classification and multi-label conflicts.
+- Distinguish applicant eligibility locations from opportunity destinations.
+- Review course skills as learning outcomes versus prerequisites.
+- Normalize scheme-less application URLs safely.
+- Review salary display modes and placeholder values.
+- Improve lifecycle evidence and invalid record diagnostics.
+
+## ADR-026: Cross-source Application Link Evidence
+
+**Status:** Proposed; implementation pending.
+
+### Observations
+
+- Egyincs listings may link directly to Wuzzuf opportunities.
+- Egyincs and Forasna contain the same Marakez internship.
+- Egyincs contains opportunities originating from NTI and ITI.
+- External application URLs may contain functional query parameters.
+
+### Proposed Decision
+
+Use validated original application links and source identifiers
+as additional cross-source matching evidence during Silver transformation.
+
+- Preserve independent source listing identities.
+- Preserve original source attribution.
+- Do not automatically merge listings solely because they share
+  a generic application portal.
+- Do not indiscriminately remove URL query parameters.
+- Review URL normalization and privacy before persistent ingestion.
+
+## ADR-027: Incremental Collection and Checkpoint Safety
+
+**Status:** Proposed; implementation pending.
+
+### Proposed Decision
+
+Separate bounded validation runs from initial backfill and
+scheduled incremental collection.
+
+- Maintain checkpoints per source and endpoint.
+- Use overlap windows to accommodate changing source data.
+- Define deterministic handling of equal publication timestamps.
+- Advance checkpoints only after successful ingestion commits.
+- Support partial runs, retries and idempotent recovery.
+- Maintain first and last observation timestamps.
+- Do not interpret absence from partial runs as closure.
+- Coordinate checkpoint storage with the Bronze schema owner.
+- Coordinate schedules and concurrent execution with the Airflow owner.
+
+No persistent checkpoint or incremental ingestion implementation
+is claimed by this decision.
+
+## ADR-028: Collection Milestone Completion Criteria
+
+**Status:** Proposed for team review.
+
+Distinguish source adapter completion from production readiness.
+
+A bounded collection milestone requires:
+
+- Source investigation.
+- Implemented extraction and normalization.
+- Automated validation tests.
+- Bounded live verification.
+- Documented source limitations.
+- Version-controlled implementation.
+
+Production readiness additionally requires:
+
+- Confirmed authorization and source-specific collection policies.
+- Persistent storage and collection run tracking.
+- Incremental collection and failure recovery.
+- Lifecycle reconciliation.
+- Privacy and retention review.
+- Scheduled integration and deployment testing.
+
+Completing a source adapter does not imply that these
+production requirements have been completed.
