@@ -5,6 +5,7 @@ from scrapers.sources.wuzzuf_api import WuzzufAPIScraper
 from scrapers.sources.forasna import ForasnaScraper
 from scrapers.sources.egyincs import EgyincsScraper
 from scrapers.sources.itida import ITIDAScraper
+from scrapers.sources.nti import NTIScraper
 
 
 def main():
@@ -16,7 +17,7 @@ def main():
     parser.add_argument(
         "--source",
         required=True,
-        choices=["wuzzuf", "forasna", "egyincs", "itida"]
+        choices=["wuzzuf", "forasna", "egyincs", "itida", "nti"],
     )
 
     parser.add_argument(
@@ -99,6 +100,19 @@ def main():
             parser.error("ITIDA supports live HTML collection only")
 
         scraper = ITIDAScraper(
+            max_jobs=args.max_jobs,
+            max_pages=args.max_pages,
+
+        )
+
+    elif args.source == "nti":
+
+        mode = args.mode or "html"
+
+        if mode != "html" or args.html_path is not None:
+            parser.error("NTI supports live HTML collection only")
+
+        scraper = NTIScraper(
             max_jobs=args.max_jobs,
             max_pages=args.max_pages,
         )

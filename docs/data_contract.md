@@ -394,6 +394,62 @@ The initial collector was validated on 20 live records on
 These implementation notes do not introduce new schema fields.
 The data contract remains at version 2.1.0.
 
+## 5.9 NTI Source Mapping
+
+NTI provides training opportunities through HireReady, Upskilling
+Programs, and CREATIVA.
+
+### Normalized Fields
+
+| Field | Mapping |
+|---|---|
+| source_name | nti |
+| source_opportunity_id | Initiative, track ID, and center ID where applicable |
+| source_url | Public course listing URL |
+| title | Course listing title |
+| organization | NTI |
+| opportunity_type | training |
+| description | Extracted overview, scope, or module description |
+| requirements | Target audience, prerequisites, and explanatory notes |
+| required_skills | Required prerequisite text |
+| categories | Initiative and category when available |
+| location | CREATIVA center location when available |
+| status | closed or unknown |
+| source_status_raw | Original registration status text |
+
+Salary, publication dates, deadlines, and other unsupported fields
+remain null.
+
+### Source-Specific Raw Payload
+
+- initiative
+- track_id
+- center_id
+- category
+- location
+- detail_url
+- detail_title
+- durations
+- prerequisites
+- target_audience
+- status_raw
+
+The durations object preserves total, technical, career, business,
+and freelance training hours.
+
+The prerequisites object preserves required, optional, notes,
+and explicit_none values.
+
+Prerequisite text requires downstream skill normalization.
+
+The explicit_none flag records source evidence and does not
+necessarily imply an empty required_skills list.
+
+No normalized schema changes are introduced by this source mapping.
+The existing data contract version remains 2.1.0.
+
+---
+
 ## 6. Source Identity and Deduplication
 
 ### 6.1 Source Listing Identity

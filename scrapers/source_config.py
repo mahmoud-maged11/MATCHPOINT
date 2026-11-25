@@ -41,6 +41,10 @@ SOURCE_CONFIGS = {
         base_url="https://itida.gov.eg",
         enabled=True
     ),
+    "nti": SourceConfig(
+    base_url="https://www.nti.sci.eg",
+    enabled=True,
+),
 }
 
 

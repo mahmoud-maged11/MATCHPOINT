@@ -813,3 +813,149 @@ This temporary policy also disables connection retries for GET.
 - Apply request pacing to internal retry attempts.
 - Improve redirect handling and destination validation.
 - Review robots.txt handling across all source adapters.
+
+---
+
+## ADR-032: NTI Hybrid HTML Collection
+
+**Status:** Accepted
+
+**Date:** 2026-11-25
+
+### Context
+
+NTI publishes training opportunities through multiple initiatives.
+Course listings contain dynamic detail references rather than
+standalone course detail links.
+
+### Decision
+
+Implement a Requests and BeautifulSoup collector covering:
+
+- HireReady.
+- Upskilling Programs.
+- CREATIVA training centers.
+
+Discover category and center listing URLs dynamically.
+
+Extract course identifiers from data-target attributes and retrieve
+the corresponding public HTML detail fragments.
+
+Reuse the shared HireReady career development fragment.
+
+Cache course details by track ID within each collection run.
+
+Use center-based discovery for CREATIVA to preserve location-specific
+opportunities and avoid overlapping category-based discovery.
+
+### Identity
+
+- HireReady: hire_ready:{track_id}
+- Upskilling: upskilling:{track_id}
+- CREATIVA: creativa:{track_id}:center:{center_id}
+
+### Validation
+
+Two bounded live collection runs each returned:
+
+- 3 discovery pages.
+- 3 listing pages.
+- 31 discovered courses.
+- 20 accepted opportunities.
+- 20 unique source identifiers.
+- 2 HireReady opportunities.
+- 16 Upskilling opportunities.
+- 2 CREATIVA opportunities.
+- 0 duplicate records.
+- 0 invalid records.
+- 0 unavailable detail pages.
+- 27 successful HTTP requests.
+- Approximately 54 seconds execution time.
+
+The robots.txt endpoint returned HTTP 404.
+
+Cache behavior was validated through unit tests, but no live cache
+hits occurred in the bounded collection runs.
+
+Full source coverage has not yet been validated.
+
+---
+
+## ADR-033: NTI Training Metadata and Lifecycle
+
+**Status:** Accepted
+
+**Date:** 2026-11-25
+
+### Decision
+
+Map NTI courses to the training opportunity type.
+
+Preserve explicitly closed registrations as closed.
+
+Use unknown when registration availability cannot be confirmed.
+
+Do not infer active registration from the absence of a closed label.
+
+Preserve training duration components in raw_payload:
+
+- total_hours
+- technical_hours
+- career_hours
+- business_hours
+- freelance_hours
+
+Separate prerequisites into:
+
+- Required prerequisites.
+- Optional or recommended prerequisites.
+- Explanatory notes.
+- Explicit statements of no prerequisites.
+
+Do not treat curriculum contents as required skills.
+
+Preserve target audiences with their associated program parts.
+
+Do not invent salary, publication dates, deadlines, or locations.
+
+### Data Quality Results
+
+The bounded 20-record sample contained:
+
+- 100% unique source identifiers.
+- 85% description coverage.
+- 90% requirements coverage.
+- 95% total duration coverage.
+- 18 closed registrations.
+- 2 unknown registrations.
+
+Targeted live validation confirmed that:
+
+- CCNA explanatory prerequisite text is excluded from required skills.
+- Recommended Motion Graphics knowledge is classified as optional.
+- Original prerequisite notes remain available.
+
+### Limitations
+
+Prerequisite classification is heuristic and does not constitute
+canonical skill normalization.
+
+Explicit no-prerequisite statements may coexist with expected skills.
+
+Missing descriptions, requirements, and durations require further
+source-level investigation.
+
+Duration inference requires additional validation across all programs.
+
+Raw-only duration changes are not currently captured by the
+normalized opportunity content hash.
+
+### Testing
+
+- 66 NTI-specific tests passed.
+- 400 total regression tests passed.
+- CLI integration validated.
+- Targeted live mapper validation passed.
+
+NTI is considered initially implemented and bounded-live validated,
+not production-complete.

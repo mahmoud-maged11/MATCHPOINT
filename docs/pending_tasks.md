@@ -181,7 +181,7 @@ must be coordinated with the Data Warehouse owner.
 - [x] Forasna (collector implementation and bounded live validation)
 - [x] Egyincs (collector implementation and bounded live validation)
 - [x] ITIDA (collector implementation and bounded live validation)
-- [ ] NTI
+- [x] NTI
 - [ ] Bayt
 - [ ] LinkedIn
 - [ ] AMIDEAST
@@ -714,19 +714,98 @@ Initial collectors implemented and bounded live validated:
 - [x] Forasna
 - [x] Egyincs
 - [x] ITIDA
-- [ ] NTI
+- [x] NTI
 - [ ] Bayt
 - [ ] LinkedIn
 - [ ] AMIDEAST
 - [ ] Devpost
 - [ ] UN Volunteers
 
-Progress: 4 of 10 initial source collectors (40%).
+Progress: 5 of 10 initial source collectors (50%).
 
-Current automated regression baseline: 334 passed.
+Current automated regression baseline: 400 passed.
 
-Next source: NTI.
+Next source: Bayt.
 
 Collector completion does not imply production readiness,
 persistent ingestion, full source coverage, verified active
 opportunities or completed warehouse integration.
+
+---
+
+## NTI Implementation Milestone
+
+**Date:** 2026-11-25
+
+- [x] Discover initiative and category endpoints.
+- [x] Discover dynamic course detail fragments.
+- [x] Implement NTI mapper.
+- [x] Implement NTI collector.
+- [x] Implement course detail caching.
+- [x] Implement shared career development fragment caching.
+- [x] Register NTI source configuration.
+- [x] Integrate NTI with CLI.
+- [x] Validate bounded live collection.
+- [x] Review representative normalized records.
+- [x] Fix prerequisite classification issues.
+- [x] Fix duration heading classification.
+- [x] Pass targeted live mapper validation.
+- [x] Pass 66 NTI-specific tests.
+- [x] Pass 400 total regression tests.
+
+### Remaining NTI Tasks
+
+- [ ] Validate full category and center coverage.
+- [ ] Implement coverage reporting and resumable collection.
+- [ ] Improve initiative fairness during bounded collection.
+- [ ] Investigate missing descriptions and requirements.
+- [ ] Investigate missing CCNA duration metadata.
+- [ ] Validate duration inference across all training programs.
+- [ ] Preserve and validate initiative-level eligibility conditions.
+- [ ] Normalize delivery modes and training locations.
+- [ ] Verify positive registration availability evidence.
+- [ ] Investigate application URL mapping.
+- [ ] Validate live cache reuse across multiple centers.
+- [ ] Validate track identity and center identifier consistency.
+- [ ] Investigate diploma and additional training program coverage.
+- [ ] Investigate CREATIVA category enrichment without duplicates.
+- [ ] Improve prerequisite classification and skill normalization.
+- [ ] Include meaningful training metadata changes in version tracking.
+- [ ] Review source access conditions and authorization scope.
+
+### Shared Production Tasks
+
+- [ ] Prevent unvalidated HTTP redirects before following them.
+- [ ] Improve retry pacing and request policy enforcement.
+- [ ] Standardize source access policy handling.
+- [ ] Implement full-load collection across bounded batches.
+- [ ] Implement incremental collection and checkpoints.
+- [ ] Implement persistent run tracking.
+- [ ] Integrate PostgreSQL storage with the agreed warehouse schema.
+- [ ] Implement idempotent writes and opportunity version history.
+- [ ] Integrate collectors with Airflow.
+- [ ] Validate production data coverage for every source.
+
+### Current Collection Progress
+
+Initially implemented and bounded-live validated sources:
+
+1. Wuzzuf
+2. Forasna
+3. Egyincs
+4. ITIDA
+5. NTI
+
+Remaining initial source implementations:
+
+6. Bayt
+7. LinkedIn Jobs
+8. AMIDEAST
+9. Devpost
+10. UN Volunteers
+
+Current milestone: 5 of 10 initial collectors implemented.
+
+Regression baseline: 400 passing tests.
+
+This milestone does not represent full production readiness.
