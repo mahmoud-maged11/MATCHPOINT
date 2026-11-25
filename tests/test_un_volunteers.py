@@ -606,3 +606,37 @@ def test_automatic_retries_disabled(scraper):
     )
 
     assert adapter.max_retries.total == 0
+
+@pytest.mark.parametrize(
+    "category",
+    [
+        None,
+        {},
+        {"workArrangement": None},
+        {"workArrangement": lookup("Unknown", "UNKNOWN")}
+    ]
+)
+def test_unknown_employment_type(listing, detail, category):
+
+    detail["volunteersCategoryDetails"] = category
+
+    result = map_un_volunteers_opportunity(
+        listing, detail, OBSERVED
+    )
+
+    assert result.employment_types is None
+
+
+def test_part_time_employment(listing, detail):
+
+    detail["volunteersCategoryDetails"] = {
+        "workArrangement": lookup(
+            "Part-time", "PARTTIME"
+        )
+    }
+
+    result = map_un_volunteers_opportunity(
+        listing, detail, OBSERVED
+    )
+
+    assert result.employment_types == ["part_time"]

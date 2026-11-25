@@ -200,8 +200,7 @@ def extract_employment_types(category):
     if arrangement in mapping:
         return [mapping[arrangement]]
 
-    return []
-
+    return None
 
 def extract_dates(listing, detail):
 

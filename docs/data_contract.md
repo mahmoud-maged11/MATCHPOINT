@@ -1,8 +1,8 @@
 # MATCHPOINT Data Contract
 
-**Version:** 2.1.0
+**Version:** 3.0.0 (proposed; pending team approval)
 
-**Status:** Implemented in collection models, Wuzzuf, Forasna and Egyincs adapters; pending team review and warehouse integration
+**Status:** Collection models and all eight source adapters implemented and bounded-live validated; proposed contract revision pending team review and warehouse integration.
 
 **Owners:** Data Collection & Data Warehouse Teams
 
@@ -99,11 +99,10 @@ Source listings and canonical opportunities must remain independently identifiab
 - itida
 - nti
 - bayt
-- amideast
 - devpost
 - un_volunteers
 
-Additional sources may be introduced through documented schema and adapter updates.
+These eight sources constitute the final project collection scope. Any future scope change requires explicit team approval and documented contract and adapter updates.
 
 ## 4. Standardized Values
 
@@ -350,7 +349,7 @@ with selected embedded taxonomy information.
 These implementation notes do not introduce new standardized
 schema fields or change existing allowed values.
 
-The Data Contract remains v2.1.0.
+This mapping was originally documented under v2.1.0.
 
 ### 5.8 ITIDA Source-Specific Implementation Notes
 
@@ -391,9 +390,9 @@ The initial collector was validated on 20 live records on
 2026-11-25, including 9 programs and 11 event archive records.
 
 These implementation notes do not introduce new schema fields.
-The data contract remains at version 2.1.0.
+This mapping was originally documented under v2.1.0.
 
-## 5.9 NTI Source Mapping
+### 5.9 NTI Source Mapping
 
 NTI provides training opportunities through HireReady, Upskilling
 Programs, and CREATIVA.
@@ -445,7 +444,7 @@ The explicit_none flag records source evidence and does not
 necessarily imply an empty required_skills list.
 
 No normalized schema changes are introduced by this source mapping.
-The existing data contract version remains 2.1.0.
+This mapping was originally documented under v2.1.0.
 
 ---
 
@@ -512,6 +511,139 @@ The existing data contract version remains 2.1.0.
 - Zero invalid records in the live sample.
 - Structured salary fields were populated in the live sample.
 - Live internship and closed/expired cases remain unverified.
+
+### 5.11 Devpost
+
+**Source name:** `devpost`
+
+**Opportunity type:** `hackathon`
+
+**Collection method:** API discovery with HTML and
+JSON-LD detail enrichment.
+
+**Initial scope:** Explicitly online, public,
+open or upcoming hackathons.
+
+| Contract field | Source mapping |
+|---|---|
+| source_name | devpost |
+| source_opportunity_id | API id converted to string |
+| source_url | Validated hackathon subdomain URL |
+| title | API title |
+| organization | API organization_name or JSON-LD organizer |
+| description | HTML challenge description or JSON-LD fallback |
+| opportunity_type | hackathon |
+| location | Online |
+| work_modes | remote |
+| categories | Deduplicated API theme names |
+| requirements | HTML requirements and eligibility text |
+| deadline | Normalized submission end date |
+| deadline_raw | JSON-LD endDate or API date fallback |
+| deadline_precision | Shared datetime normalization |
+| source_status_raw | API open_state |
+| status | active for open, unknown for upcoming, subject to resolver |
+| collected_at | UTC observation timestamp |
+| published_at | null |
+| salary_min | null |
+| salary_max | null |
+| currency | null |
+| salary_period | null |
+
+#### Raw payload
+
+Preserve the following source-specific evidence:
+
+- api_id
+- open_state
+- displayed_location
+- submission_period_dates
+- time_left_to_submission
+- submission_start_raw
+- submission_end_raw
+- deadline_kind
+- registration_deadline
+- registration_url
+- rules_url
+- prize_amount_raw
+- prizes_counts
+- registrations_count
+- invite_only
+- themes
+- eligibility
+- country_list_title
+- listed_countries
+- included_countries
+- excluded_countries
+- egypt_eligibility
+
+#### Semantic constraints
+
+- The normalized deadline represents the submission
+  cutoff, not a verified registration deadline.
+- Registration URLs do not prove registration is open.
+- Prize amounts are not employment compensation.
+- Upcoming hackathons retain unknown normalized status.
+- Online delivery does not imply worldwide eligibility.
+- Egyptian eligibility remains unverified.
+- Aggregate registration counts are not participant
+  personal records.
+- Missing descriptions cause record rejection.
+- Restricted country lists must be available before
+  the opportunity can pass geographic filtering.
+
+### 5.12 UN Volunteers
+
+**Source name:** `un_volunteers`
+
+**Opportunity type:** `volunteering`
+
+**Collection method:** Observed JSON API listing search and assignment details.
+
+| Contract field | Source mapping |
+|---|---|
+| source_opportunity_id | Validated assignment ID converted to string |
+| source_url | Public assignment URL |
+| title | Assignment title |
+| organization | Host entity name |
+| description | Cleaned task description |
+| location | Source country label; may represent host country for online assignments |
+| work_modes | remote for online; on_site for Egyptian onsite assignments |
+| employment_types | FULLTIME to full_time; PARTTIME to part_time; missing or unrecognized arrangement to null |
+| categories | Source expertise areas |
+| requirements | Available skills, eligibility, education and language evidence |
+| education_level | Source education evidence |
+| published_at | Normalized publication timestamp when supported |
+| deadline | null pending reliable closing-time semantics |
+| deadline_raw | Original sourcingEndDate |
+| deadline_precision | unknown when raw deadline exists; otherwise null |
+| source_status_raw | Original source status evidence |
+| status | active or unknown for accepted assignments under the source-specific policy |
+| collected_at | UTC observation timestamp |
+| raw_payload | Selected assignment metadata |
+
+#### Geographic scope and eligibility
+
+- Accept explicitly online assignments regardless of host country and onsite assignments only when the country code is EGY.
+- Reject unknown modality and inconsistent listing/detail identities or modalities.
+- Geographic filtering does not establish Egyptian applicant eligibility. Preserve nationality and other eligibility evidence; egypt_eligibility remains unverified.
+- Online host location must not be interpreted as a required physical work location.
+
+#### Lifecycle and normalization
+
+- Require DOA_SOURCING, active sourcing, and explicitly false reserved and single-source flags.
+- Preserve sourcingEndDate without inventing a normalized deadline or timezone.
+- Missing or unparseable deadline evidence produces unknown status. Before the raw deadline date, qualifying assignments are active; from that date through two days afterward, status is unknown; later observations are excluded. This is a conservative project policy, not a verified source guarantee.
+- Preserve distinct source IDs even when titles match; semantic deduplication requires downstream evidence.
+- Missing or unrecognized employment arrangements remain null, not an empty array.
+- Do not infer normalized experience years from unverified experience units or salary from volunteering metadata. Normalized salary and experience fields remain null.
+- Preserve selected duration, hours, experience, category, nationality, language, eligibility and status metadata. Do not intentionally retain recruitment contact fields or the complete API response.
+
+#### Validation and limitations
+
+- Initial bounded live run: 20 online active assignments accepted.
+- Expanded bounded live run: 40 accepted (39 online, one onsite in Egypt), 39 active and one unknown; zero duplicate IDs, invalid records or missing details. Seven listing pages and 40 detail requests returned HTTP 200.
+- The live runs preceded the final employment_types correction. The correction was verified by automated tests: 71 UN Volunteers tests and 665 full regression tests passed.
+- Full coverage, applicant eligibility, exact closing times, source authorization for production, persistent ingestion and lifecycle reconciliation remain pending.
 
 ## 6. Source Identity and Deduplication
 
@@ -695,82 +827,4 @@ Outstanding implementation tasks must be recorded in docs/pending_tasks.md.
 | 1.0.0 | Initial data contract |
 | 2.0.0 | Multiple employment types and work modes, source listing identity, canonical opportunities, date precision, experience ranges, category separation, content hashing, and deduplication rules |
 | 2.1.0 | Added salary period, original source status, conservative deadline handling, numeric hash normalization, and source payload minimization |
-
-### 5.11 Devpost
-
-**Source name:** `devpost`
-
-**Opportunity type:** `hackathon`
-
-**Collection method:** API discovery with HTML and
-JSON-LD detail enrichment.
-
-**Initial scope:** Explicitly online, public,
-open or upcoming hackathons.
-
-| Contract field | Source mapping |
-|---|---|
-| source_name | devpost |
-| source_opportunity_id | API id converted to string |
-| source_url | Validated hackathon subdomain URL |
-| title | API title |
-| organization | API organization_name or JSON-LD organizer |
-| description | HTML challenge description or JSON-LD fallback |
-| opportunity_type | hackathon |
-| location | Online |
-| work_modes | remote |
-| categories | Deduplicated API theme names |
-| requirements | HTML requirements and eligibility text |
-| deadline | Normalized submission end date |
-| deadline_raw | JSON-LD endDate or API date fallback |
-| deadline_precision | Shared datetime normalization |
-| source_status_raw | API open_state |
-| status | active for open, unknown for upcoming, subject to resolver |
-| collected_at | UTC observation timestamp |
-| published_at | null |
-| salary_min | null |
-| salary_max | null |
-| currency | null |
-| salary_period | null |
-
-#### Raw payload
-
-Preserve the following source-specific evidence:
-
-- api_id
-- open_state
-- displayed_location
-- submission_period_dates
-- time_left_to_submission
-- submission_start_raw
-- submission_end_raw
-- deadline_kind
-- registration_deadline
-- registration_url
-- rules_url
-- prize_amount_raw
-- prizes_counts
-- registrations_count
-- invite_only
-- themes
-- eligibility
-- country_list_title
-- listed_countries
-- included_countries
-- excluded_countries
-- egypt_eligibility
-
-#### Semantic constraints
-
-- The normalized deadline represents the submission
-  cutoff, not a verified registration deadline.
-- Registration URLs do not prove registration is open.
-- Prize amounts are not employment compensation.
-- Upcoming hackathons retain unknown normalized status.
-- Online delivery does not imply worldwide eligibility.
-- Egyptian eligibility remains unverified.
-- Aggregate registration counts are not participant
-  personal records.
-- Missing descriptions cause record rejection.
-- Restricted country lists must be available before
-  the opportunity can pass geographic filtering.
+| 3.0.0 (proposed) | Restrict supported source_name values to the final eight sources by removing the unimplemented AMIDEAST value; document UN Volunteers mapping and missing employment arrangement semantics. No column or data type changes. Pending team approval. |

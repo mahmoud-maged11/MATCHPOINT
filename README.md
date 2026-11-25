@@ -1,257 +1,121 @@
-# \# MATCHPOINT
-
-# \### Your Next Opportunity Starts Here.
-
-# 
-
-# \## 📌 Project Overview
-
-# 
-
-# MATCHPOINT is a youth opportunity discovery and recommendation platform designed to help students, fresh graduates, and job seekers in Egypt find opportunities that match their skills, interests, education, and career goals.
-
-# 
-
-# Instead of searching across multiple websites and platforms, users will be able to discover different opportunities in one place and receive personalized recommendations.
-
-# 
-
-# \## 🎯 Project Objectives
-
-# 
-
-# \- Centralize opportunities from multiple permitted sources.
-
-# \- Help users discover relevant opportunities more efficiently.
-
-# \- Provide personalized opportunity recommendations.
-
-# \- Identify skill gaps between users' profiles and opportunity requirements.
-
-# \- Help users track saved opportunities, deadlines, and applications.
-
-# \- Analyze market trends and identify in-demand skills.
-
-# 
-
-# \## ✨ Planned Features
-
-# 
-
-# \- \*\*Opportunity Discovery:\*\* Browse jobs, internships, scholarships, training programs, competitions, hackathons, and volunteering opportunities.
-
-# \- \*\*Personalized Recommendations:\*\* Suggest opportunities based on user profiles and requirements.
-
-# \- \*\*Skill Gap Analysis:\*\* Highlight skills users may need to improve for their target opportunities.
-
-# \- \*\*Deadline Notifications:\*\* Help users stay aware of important application deadlines.
-
-# \- \*\*Saved Opportunities:\*\* Save interesting opportunities for later.
-
-# \- \*\*Application Tracker:\*\* Track application progress.
-
-# \- \*\*Market Analytics:\*\* Explore opportunity trends and in-demand skills through dashboards.
-
-# 
-
-# \## 👥 Target Users
-
-# 
-
-# \- University students
-
-# \- Fresh graduates
-
-# \- Job seekers
-
-# \- Professionals seeking career development
-
-# \- Career changers
-
-# 
-
-# \## 🛠️ Planned Technology Stack
-
-# 
-
-# The following technologies are proposed for the project. The final stack may be adjusted during implementation.
-
-# 
-
-# | Component | Proposed Technologies |
-
-# |---|---|
-
-# | Data Collection | Python, Requests, Scrapy |
-
-# | Data Transformation | Python, SQL, dbt |
-
-# | Data Storage | PostgreSQL |
-
-# | Workflow Orchestration | Apache Airflow |
-
-# | Analytics Database | ClickHouse |
-
-# | Backend | Python, FastAPI |
-
-# | Frontend | React, Vite |
-
-# | Data Processing and Matching | pandas, spaCy, scikit-learn |
-
-# | Visualization | Power BI |
-
-# | Version Control | Git and GitHub |
-
-# | Containerization | Docker |
-
-# 
-
-# \## 🏗️ Proposed Architecture
-
-# 
-
-# The proposed workflow consists of the following stages:
-
-# 
-
-# 1\. Collect opportunity data from permitted sources.
-
-# 2\. Store raw data in the Bronze layer.
-
-# 3\. Clean, standardize, and validate records in the Silver layer.
-
-# 4\. Enrich opportunity data, extract relevant skills, and identify duplicates.
-
-# 5\. Prepare curated data for application features and analytics in the Gold layer.
-
-# 6\. Provide opportunity search, recommendations, and user-facing features through the backend and frontend.
-
-# 7\. Analyze opportunity trends and skill demand using dashboards.
-
-# 
-
-# \## 👨‍💻 Team Members
-
-# 
-
-# \- \*\*Mahmoud:\*\* Web scraping, data collection, and part of data transformation.
-
-# \- \*\*Andrew:\*\* Apache Airflow and ClickHouse.
-
-# \- \*\*Momen:\*\* Data warehouse and data transformation.
-
-# \- \*\*Ramadan:\*\* ClickHouse collaboration and Power BI dashboards.
-
-# \- \*\*Abdel Rahman:\*\* Frontend and backend development.
-
-# 
-
-# \*Team responsibilities may be refined as the project progresses.\*
-
-# 
-
-# \## 📂 Repository Structure
-
-# 
-
-# ```text
-
-# Graduation-Project/
-
-# ├── docs/
-
-# │   └── MATCHPOINT\_Project\_Documentation\_Final.docx
-
-# └── README.md
-
-# ```
-
-# 
-
-# Additional folders and source code will be added during implementation.
-
-# 
-
-# \## 📄 Project Documentation
-
-# 
-
-# The project documentation is available in \[`docs/MATCHPOINT\_Project\_Documentation\_Final.docx`](docs/MATCHPOINT\_Project\_Documentation\_Final.docx).
-
-# 
-
-# \## 📊 Project Status
-
-# 
-
-# \*\*Current Stage:\*\* Planning and Design
-
-# 
-
-# The project is currently in the planning and design phase. Implementation, integration, and testing are planned for subsequent stages.
-
-# 
-
-# \## ⚖️ Data Collection and Responsible Use
-
-# 
-
-# MATCHPOINT will collect data only from sources and through methods permitted by the relevant websites' terms and access policies. The project will respect applicable restrictions and avoid bypassing access controls.
-
-# 
-
-# \## 🚀 Future Development
-
-# 
-
-# Future work may include expanding the number of opportunity sources, improving recommendation methods, automating data pipelines, and developing additional analytics features.
-
-# 
-
-# \---
-
-# 
-
-# \*MATCHPOINT: Your Next Opportunity Starts Here.\*
+# MATCHPOINT
+
+*Your Next Opportunity Starts Here.*
+
+## Project Overview
+
+MATCHPOINT is a youth opportunity discovery and recommendation platform designed to help students, fresh graduates, job seekers and career changers in Egypt find opportunities matching their skills, interests, education and career goals.
+
+## Project Objectives and Planned Features
+
+- Centralize opportunities from permitted sources.
+- Provide opportunity discovery, search and personalized recommendations.
+- Identify skill gaps between user profiles and opportunity requirements.
+- Support saved opportunities, deadline notifications and application tracking.
+- Analyze market trends and in-demand skills.
+
+Target users include university students, fresh graduates, job seekers, professionals seeking career development and career changers. User-facing features remain planned.
+
+## Final Data Collection Scope
+
+| Source | CLI identifier | Collection approach |
+|---|---|---|
+| Wuzzuf | `wuzzuf` | API |
+| Forasna | `forasna` | HTML and JSON-LD |
+| Egyincs | `egyincs` | WordPress REST API |
+| ITIDA | `itida` | SharePoint HTML and ASP.NET pagination |
+| NTI | `nti` | HTML and dynamic course discovery |
+| Bayt | `bayt` | HTML and JSON-LD |
+| Devpost | `devpost` | API and HTML detail enrichment |
+| UN Volunteers | `un_volunteers` | JSON API search and details |
+
+All eight adapters have been implemented and tested with bounded live samples. This does not establish complete coverage, production authorization or applicant eligibility. Online opportunities may have international host locations; geographic filtering does not guarantee Egyptian applicant eligibility. UN Volunteers accepts explicitly online assignments and onsite assignments in Egypt. No additional sources are planned within the current scope.
+
+## Technology Stack
+
+| Component | Technologies | Status |
+|---|---|---|
+| Data collection and validation | Python, Requests, Beautiful Soup, Pydantic | Implemented |
+| Automated testing | pytest | Implemented |
+| Data storage | PostgreSQL 16 | Infrastructure configured and tested; ingestion pending |
+| Data transformation | Python, SQL, dbt | Warehouse implementation pending |
+| Workflow orchestration | Apache Airflow | Planned |
+| Analytics database | ClickHouse 25.8 | Infrastructure configured and tested; analytical loading pending |
+| Backend | Python, FastAPI | Planned |
+| Frontend | React, Vite | Planned |
+| Processing and matching | pandas, spaCy, scikit-learn | Proposed |
+| Visualization | Power BI | Planned |
+| Version control and infrastructure | Git, GitHub, Docker Compose | Configured |
+
+## Architecture
+
+```text
+Eight opportunity sources
+    -> Source adapters / collection
+    -> Mapping, normalization and contract validation
+    -> PostgreSQL Bronze (persistent ingestion and source history)
+    -> Silver (cleaning, enrichment, deduplication, canonical identity)
+    -> Gold (business-ready datasets)
+         -> FastAPI -> React
+         -> ClickHouse -> Power BI
+```
+
+Airflow is planned to orchestrate collection, ingestion, dbt transformations and analytical loading. Collection, mapping, validation and shared content hashing are implemented; persistent ingestion and downstream integration remain pending. Bronze must preserve permitted source evidence and ingestion metadata. Silver must preserve source attribution while identifying canonical opportunities.
+
+## Current Project Status
+
+As of 2026-11-25, on the `feature/data-collection` branch:
+
+- Eight of eight source adapters implemented and bounded-live validated.
+- Shared collection utilities, standardized models, content hashing and in-memory invalid-record handling implemented.
+- Latest regression result: **665 tests passed**, including 71 UN Volunteers tests.
+- UN Volunteers expanded live sample: 40 accepted assignments (39 online, one onsite in Egypt), with zero duplicate IDs, invalid records or missing details. The subsequent employment arrangement correction was verified by automated tests, not a new live run.
+- Data Contract 3.0.0 is proposed, pending team approval; the previous version is 2.1.0.
+- PostgreSQL and ClickHouse infrastructure configured and tested; persistent storage configured. End-to-end pipeline integration has not been demonstrated.
+- Warehouse schema, persistent ingestion, lifecycle management, incremental collection, orchestration, backend, frontend and analytics remain pending implementation or integration review.
+
+These statements describe the collection branch, not a completed application or a merged release on `main`.
 
 ## Getting Started
 
 ### Prerequisites
 
 - Git
-- Docker Desktop
-- Docker Compose
+- Docker Desktop and Docker Compose
 - Python 3.12 (recommended)
 - DBeaver (recommended)
 
-### 1. Clone the Repository
+### 1. Clone the repository
 
 ```bash
 git clone https://github.com/mahmoud-maged11/MATCHPOINT.git
 cd MATCHPOINT
 ```
 
-### 2. Configure Environment Variables
+Use the appropriate feature branch for development. The collection implementation is currently on `feature/data-collection`.
+
+### 2. Configure environment variables
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Git Bash:
 
 ```bash
 cp .env.example .env
 ```
 
-Update the `.env` file with your local credentials. Never commit the `.env` file to GitHub.
+Update `.env` with local credentials. Never commit credentials or the `.env` file.
 
-### 3. Start Docker Services
+### 3. Start and verify database services
 
 ```bash
 docker compose up -d
-```
-
-### 4. Verify Running Services
-
-```bash
 docker compose ps
 ```
-
-### 5. Database Connections
 
 | Setting | PostgreSQL | ClickHouse |
 |---|---|---|
@@ -261,9 +125,36 @@ docker compose ps
 | Username | matchpoint | matchpoint |
 | Password | From .env | From .env |
 
-For communication between Docker containers, use the service names `postgres` and `clickhouse` instead of `localhost`.
+For container-to-container communication, use the service names `postgres` and `clickhouse` instead of `localhost`.
 
-### 6. Stop Docker Services
+### 4. Install collection dependencies
+
+From the repository root in Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r scrapers/requirements.txt
+.\.venv\Scripts\python.exe -m pip install pytest
+```
+
+If a virtual environment already exists, reuse it. Install any additional browser dependencies required by the relevant adapter before using browser-based collection.
+
+### 5. Run collectors and tests
+
+```powershell
+.\.venv\Scripts\python.exe -m scrapers.main --help
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Example bounded API collection, subject to applicable source access policies:
+
+```powershell
+.\.venv\Scripts\python.exe -m scrapers.main --source un_volunteers --mode api --max-jobs 20 --page-size 20 --max-pages 10 --output "$env:TEMP\unv_sample.json"
+```
+
+Use the CLI help and adapter documentation to select supported modes and limits for each source. Collection output is not evidence of persistent Bronze ingestion. Keep generated datasets and sensitive data out of Git.
+
+### 6. Stop database services
 
 ```bash
 docker compose down
@@ -276,7 +167,17 @@ Do not use `docker compose down -v` unless you intentionally want to delete stor
 ```text
 MATCHPOINT/
 ├── scrapers/
-├── backend/
+│   ├── sources/             # Eight collectors and source mappers
+│   ├── storage/             # Storage integration area
+│   ├── utils/               # Shared collection utilities
+│   ├── main.py
+│   ├── models.py
+│   ├── source_config.py
+│   ├── base_scraper.py
+│   ├── config.py
+│   └── requirements.txt
+├── tests/
+│   └── fixtures/
 ├── database/
 │   └── migrations/
 ├── dbt/
@@ -284,39 +185,63 @@ MATCHPOINT/
 │   └── dags/
 ├── clickhouse/
 ├── analytics/
+├── backend/
 ├── frontend/
-├── tests/
 ├── docs/
-│   └── data_contract.md
+│   ├── data_contract.md
+│   ├── architecture_decisions.md
+│   ├── pending_tasks.md
+│   └── MATCHPOINT_Project_Documentation_Final.docx
 ├── .env.example
 ├── .gitignore
 ├── docker-compose.yml
 └── README.md
 ```
 
+Several downstream directories are currently scaffolding; their presence does not imply completed implementation.
+
+## Team Responsibilities
+
+| Member | Responsibility |
+|---|---|
+| Mahmoud | Data collection, validation, hashing, PostgreSQL ingestion and backend |
+| Momen | PostgreSQL warehouse design, dbt, Silver/Gold, deduplication and data quality |
+| Andrew | Airflow orchestration, monitoring and ClickHouse analytical loading |
+| Ramadan | SQL analytics and Power BI dashboards |
+| Abdel Rahman | React frontend |
+
+Mahmoud and Momen must coordinate the contract, physical Bronze schema, source identity, history, idempotency, transaction boundaries and lifecycle handling before persistent integration. Responsibilities remain subject to team review.
+
+## Project Documentation
+
+- [Data Contract](docs/data_contract.md): standardized schema and source mapping rules.
+- [Architecture Decisions](docs/architecture_decisions.md): technical decisions and rationale.
+- [Pending Tasks](docs/pending_tasks.md): outstanding tasks, blockers and validation milestones.
+- [Project Documentation](docs/MATCHPOINT_Project_Documentation_Final.docx): project-level documentation, pending alignment with the latest implementation.
+
 ## Development Workflow
 
-1. Pull the latest changes from the main branch.
-2. Create a feature branch for your task.
-3. Implement and test your changes.
-4. Commit changes with descriptive messages.
-5. Push your feature branch.
+1. Fetch and review the latest changes from `main`.
+2. Work on the appropriate feature branch.
+3. Implement and test changes.
+4. Update the contract, architecture decisions and pending tasks where relevant.
+5. Commit with descriptive messages and push the feature branch.
 6. Open a Pull Request for review.
-7. Merge approved changes into main.
+7. Merge approved changes into `main`.
 
-## Data Contract
+Communicate contract changes to affected team members before integration.
 
-All data collection and transformation components must follow the specification defined in [Data Contract](docs/data_contract.md).
+## Responsible Data Collection
 
-## Current Infrastructure Status
+Use only permitted collection methods and respect applicable terms, access restrictions and rate limits. Do not bypass access controls. Retain only relevant and permitted source evidence; avoid hidden financial or organization information and unnecessary personal data. Live HTTP success does not establish production permission. Do not infer closure from absence in a bounded run or infer applicant eligibility from online delivery alone.
 
-- PostgreSQL 16: Configured and tested.
-- ClickHouse 25.8: Configured and tested.
-- Docker networking: Configured.
-- Persistent database storage: Configured.
-- Apache Airflow: Planned.
-- dbt: Planned.
-- FastAPI backend: Planned.
-- React frontend: Planned.
-- Power BI dashboards: Planned.
+## Next Development Milestones
 
+- Review and approve the proposed contract with the team.
+- Agree on the physical Bronze schema and persistent ingestion interface.
+- Implement source identity, content history, invalid-record retention, idempotency and incremental checkpoints.
+- Integrate Silver and Gold transformations, orchestration and analytical loading.
+- Implement backend, matching, frontend and dashboards.
+- Complete integration tests, deployment documentation and end-to-end validation.
+
+The detailed outstanding work remains in `docs/pending_tasks.md`.

@@ -1,6 +1,6 @@
 # MATCHPOINT Pending Tasks
 
-**Data Contract Version:** 2.1.0
+**Data Contract Version:** 3.0.0 (proposed; pending team approval)
 
 **Last Updated:** 2026-11-25
 
@@ -31,8 +31,10 @@
 - [x] Prepare Data Contract v2.1.0.
 - [x] Add salary_period and source_status_raw.
 - [x] Update architecture decisions for Wuzzuf API collection.
+- [x] Remove AMIDEAST from the runtime source model and verify the final eight-source scope.
+- [ ] Resolve contract versioning for the narrowed source enumeration with the team.
 - [ ] Review updated documentation against implementation.
-- [ ] Obtain team approval for Data Contract v2.1.0.
+- [ ] Obtain team approval for Data Contract v3.0.0 (proposed).
 - [x] Commit and push Data Contract v2.1.0 to the feature branch.
 - [ ] Communicate updated contract to all team members.
 
@@ -68,7 +70,8 @@
 - [x] Preserve local HTML parsing for disabled sources.
 - [x] Pass 6 HTTPClient automated tests.
 - [x] Pass all 69 automated tests.
-- [ ] Configure remaining seven sources.
+- [x] Configure all eight final sources.
+- [x] Verify model and configuration source scope consistency.
 - [x] Implement per-client rate limiting.
 - [x] Use monotonic clock for request interval calculation.
 - [x] Protect rate limiter state using thread locks.
@@ -181,12 +184,12 @@ must be coordinated with the Data Warehouse owner.
 - [x] Forasna (collector implementation and bounded live validation)
 - [x] Egyincs (collector implementation and bounded live validation)
 - [x] ITIDA (collector implementation and bounded live validation)
-- [x] NTI
-- [ ] Bayt
-- [ ] Replacement job source (TBD)
-- [ ] AMIDEAST
-- [ ] Devpost
-- [ ] UN Volunteers
+- [x] NTI (collector implementation and bounded live validation)
+- [x] Bayt (collector implementation and bounded live validation)
+- [x] Devpost (collector implementation and bounded live validation)
+- [x] UN Volunteers (collector implementation and bounded live validation)
+
+Together with Wuzzuf, these constitute the final eight-source scope. AMIDEAST and the proposed replacement job source are out of scope; no additional initial collectors are planned.
 
 For each source:
 
@@ -438,7 +441,7 @@ as currently actionable opportunities without supporting evidence.
 
 **Priority:** P1
 
-- [ ] Review Data Contract v2.1.0.
+- [ ] Review proposed Data Contract v3.0.0.
 - [ ] Design Bronze, Silver, and Gold schemas.
 - [ ] Design physical source listing tables.
 - [ ] Design raw observation and content history tables.
@@ -554,7 +557,7 @@ as currently actionable opportunities without supporting evidence.
 
 **Priority:** P2
 
-- [x] Implement collection-layer unit tests (260 passing).
+- [x] Implement collection-layer unit tests (665 passing as of 2026-11-25).
 - [ ] Implement unit tests for remaining components.
 - [ ] Implement integration tests.
 - [ ] Implement end-to-end pipeline tests.
@@ -629,7 +632,7 @@ as currently actionable opportunities without supporting evidence.
 - [x] Implement shared date normalization utilities.
 - [x] Implement deterministic numeric and array hashing.
 - [x] Implement and test in-memory invalid record handling.
-- [x] Complete bounded collection validation for three source adapters.
+- [x] Complete bounded collection validation for all eight final source adapters.
 
 ### Implemented, Needs Validation
 
@@ -706,8 +709,6 @@ as currently actionable opportunities without supporting evidence.
 - [ ] Integrate incremental checkpoints with committed transactions.
 - [ ] Validate complete source-to-Bronze ingestion.
 
-### Current Collection Milestone
-
 Initial collectors implemented and bounded live validated:
 
 - [x] Wuzzuf
@@ -715,21 +716,21 @@ Initial collectors implemented and bounded live validated:
 - [x] Egyincs
 - [x] ITIDA
 - [x] NTI
-- [ ] Bayt
-- [ ] Replacement job source (TBD)
-- [ ] AMIDEAST
-- [ ] Devpost
-- [ ] UN Volunteers
+- [x] Bayt
+- [x] Devpost
+- [x] UN Volunteers
 
-Progress: 5 of 10 initial source collectors (50%).
+**Progress:** 8/8 (100%).
+**Status:** Completed.
+**Regression tests:** 665 passed.
 
-Current automated regression baseline: 400 passed.
+Excluded sources:
+- LinkedIn
+- Tanqeeb
+- AMIDEAST
+- Proposed replacement job source
 
-Next source: Bayt.
-
-Collector completion does not imply production readiness,
-persistent ingestion, full source coverage, verified active
-opportunities or completed warehouse integration.
+These sources are outside the final project scope.
 
 ---
 
@@ -786,7 +787,7 @@ opportunities or completed warehouse integration.
 - [ ] Integrate collectors with Airflow.
 - [ ] Validate production data coverage for every source.
 
-### Current Collection Progress
+### Historical Collection Progress (NTI stage)
 
 Initially implemented and bounded-live validated sources:
 
@@ -798,17 +799,12 @@ Initially implemented and bounded-live validated sources:
 
 Remaining initial source implementations:
 
-6. Bayt
-7. Replacement job source (TBD)
-8. AMIDEAST
-9. Devpost
-10. UN Volunteers
+None. All eight sources have been implemented
+and bounded-live validated.
 
-Current milestone: 5 of 10 initial collectors implemented.
-
-Regression baseline: 400 passing tests.
-
-This milestone does not represent full production readiness.
+**Collection implementation progress:** 8/8 (100%).
+**Status:** Completed.
+**Next phase:** PostgreSQL Bronze ingestion and warehouse integration.
 
 ---
 
@@ -849,15 +845,15 @@ This milestone does not represent full production readiness.
 
 ---
 
-## Current Source Implementation Status
+## Historical Source Implementation Status (Bayt stage)
 
 **Last updated:** 2026-11-25
 
-- Completed source implementations: 6/10 (60%).
+- Historical source implementation progress: 6/10 (60%), under the former scope.
 - Completed: Wuzzuf, Forasna, Egyincs, ITIDA, NTI, Bayt.
-- Total regression tests: 498 passed.
-- Next source: Replacement job source (TBD).
-- Remaining: Replacement job source (TBD), AMIDEAST, Devpost, UN Volunteers.
+- Regression tests at that milestone: 498 passed.
+- Previously planned next source: Replacement job source (TBD).
+- Previously remaining sources: Replacement job source (TBD), AMIDEAST, Devpost, UN Volunteers. Superseded by the final eight-source scope.
 
 Production coverage, incremental collection, persistent
 storage and orchestration integration remain pending.
@@ -922,3 +918,78 @@ memory. The earlier local JSON export predates the
 country eligibility fix and is not a final dataset.
 
 Database persistence and orchestration remain pending.
+
+---
+
+## UN Volunteers Collection Milestone
+
+**Date:** 2026-11-25
+
+**Status:** Initial collector implemented and bounded live validated.
+
+- [x] Discover JSON search and assignment detail API endpoints.
+- [x] Implement bounded POST search pagination and GET detail retrieval.
+- [x] Validate response structure, source IDs and listing/detail consistency.
+- [x] Filter online assignments globally and onsite assignments in Egypt only.
+- [x] Exclude unsupported modalities, reserved and single-source assignments, and non-recruiting records.
+- [x] Implement conservative deadline and lifecycle evaluation.
+- [x] Map volunteering opportunities and retain selected source metadata.
+- [x] Preserve unverified Egyptian applicant eligibility explicitly.
+- [x] Integrate source configuration and CLI.
+- [x] Disable automatic HTTP retries and redirects for the collector.
+- [x] Validate online and Egyptian onsite collection through bounded live runs.
+- [x] Verify missing or unknown employment types map to null rather than an empty array.
+- [x] Verify full-time and part-time mapping.
+- [x] Pass 71 UN Volunteers tests and 665 full regression tests.
+- [ ] Complete architecture and data contract documentation updates.
+
+### Live Validation Evidence
+
+- First run: 20 accepted online active assignments; 4 listing pages, 80 discovered, 55 excluded, 5 unprocessed at the collection cap; zero duplicates, invalid records or missing details.
+- Second run: 40 accepted assignments; 7 listing pages, 140 discovered, 83 excluded, 17 unprocessed at the collection cap; zero duplicates, invalid records or missing details.
+- Second run modality: 39 online and 1 onsite in Egypt.
+- Second run lifecycle: 39 active and 1 unknown.
+- Second run: 47 successful HTTP requests, approximately 93 seconds.
+- Both runs were bounded samples, not exhaustive collection. The second local JSON export predates the employment-type null correction; the correction was verified by automated tests, not a new live run.
+- Distinct source IDs with identical titles were observed. Preserve both source listings pending semantic deduplication evidence.
+
+### UN Volunteers Deferred Tasks
+
+- [ ] Verify nationality, residency and other Egyptian applicant eligibility restrictions.
+- [ ] Distinguish online host-country metadata from actual work location.
+- [ ] Resolve API/UI deadline differences, source timezone and conservative expiration buffer.
+- [ ] Validate experience units and normalize experience only with reliable evidence.
+- [ ] Resolve conflicting hours-per-week labels and codes.
+- [ ] Validate assignment duration, category and compensation metadata.
+- [ ] Review raw-only metadata changes for content version tracking.
+- [ ] Review free-text privacy and selected payload retention.
+- [ ] Validate complete pagination coverage and changing listing boundaries.
+- [ ] Confirm production authorization, request limits and scheduling.
+- [ ] Implement safe retry policies, recovery and persistent checkpoints.
+- [ ] Persist collection runs, invalid records and source observations.
+- [ ] Integrate PostgreSQL Bronze ingestion and lifecycle reconciliation.
+- [ ] Review semantic duplicate candidates with the warehouse owner.
+- [ ] Integrate Airflow orchestration and production monitoring.
+
+## Final Initial Source Implementation Status
+
+**Last updated:** 2026-11-25
+
+- [x] Wuzzuf
+- [x] Forasna
+- [x] Egyincs
+- [x] ITIDA
+- [x] NTI
+- [x] Bayt
+- [x] Devpost
+- [x] UN Volunteers
+
+**Initial collector progress:** 8/8 (100%).
+
+**Current regression baseline:** 665 passed (2.01 seconds).
+
+**Scope:** No additional initial sources planned. Earlier ten-source progress sections are historical snapshots, superseded by this final scope.
+
+**Next milestone:** Complete documentation and contract version review, coordinate physical Bronze schema and ingestion design, and implement persistent ingestion before downstream integration.
+
+Bounded live validation and passing unit tests do not establish production authorization, exhaustive coverage, complete applicant eligibility, persistent ingestion or end-to-end pipeline readiness.

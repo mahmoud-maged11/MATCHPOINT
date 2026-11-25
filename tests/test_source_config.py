@@ -1,6 +1,15 @@
+from dataclasses import FrozenInstanceError
+from typing import get_args
+
 import pytest
 
-from dataclasses import FrozenInstanceError
+from scrapers.models import SourceName
+
+from scrapers.source_config import (
+    SourceConfig,
+    get_source_config,
+    SOURCE_CONFIGS
+)
 
 from scrapers.config import (
     REQUEST_TIMEOUT,
@@ -59,3 +68,46 @@ def test_configuration_is_immutable():
 
     with pytest.raises(FrozenInstanceError):
         config.request_timeout = 100
+
+
+EXPECTED_SOURCES = {
+    "wuzzuf",
+    "forasna",
+    "egyincs",
+    "itida",
+    "nti",
+    "bayt",
+    "devpost",
+    "un_volunteers"
+}
+
+
+def test_final_source_scope():
+
+    assert set(SOURCE_CONFIGS) == EXPECTED_SOURCES
+
+
+def test_model_source_scope():
+
+    assert set(get_args(SourceName)) == EXPECTED_SOURCES
+
+
+def test_model_and_config_consistency():
+
+    assert set(get_args(SourceName)) == set(SOURCE_CONFIGS)
+
+
+@pytest.mark.parametrize("source", sorted(EXPECTED_SOURCES))
+def test_final_sources_enabled(source):
+
+    assert get_source_config(source).enabled is True
+
+
+@pytest.mark.parametrize(
+    "source",
+    ["amideast", "linkedin", "tanqeeb"]
+)
+def test_out_of_scope_sources_rejected(source):
+
+    with pytest.raises(ValueError):
+        get_source_config(source)

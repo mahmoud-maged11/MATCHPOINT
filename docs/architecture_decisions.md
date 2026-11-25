@@ -1,6 +1,6 @@
 # MATCHPOINT Architecture Decisions
 
-**Related Data Contract:** v2.1.0
+**Related Data Contract:** v3.0.0 (proposed; pending team approval)
 
 **Purpose:** Document architectural decisions, their rationale, and implementation requirements.
 
@@ -1172,3 +1172,98 @@ The final live run excluded:
 
 The collection still reached its target of 20 unique
 opportunities after applying these restrictions.
+
+## ADR-038: UN Volunteers API Collection
+
+**Date:** 2026-11-25
+
+**Status:** Implemented and bounded-live validated; production integration pending.
+
+### Decision
+
+- Use the observed JSON API at app.unv.org: POST /api/doa/doa/SearchDoaAsyncByAzureCognitive for discovery and GET /api/doa/doa/{id} for details.
+- Use bounded skip/take pagination and validate response structure and pagination metadata.
+- Use positive numeric assignment IDs as source opportunity identifiers; deduplicate within each run.
+- Filter listing scope before detail retrieval and validate identity and modality again during mapping.
+- Apply configured request pacing and timeouts; disable automatic retries and redirects for this adapter.
+- Skip detail responses with HTTP 404 or 410; propagate other HTTP failures.
+- Retain selected opportunity metadata and limited invalid-record diagnostics, not complete API responses or dedicated recruitment contact fields.
+
+### Live validation
+
+| Metric | First run | Second run |
+|---|---:|---:|
+| Listing pages | 4 | 7 |
+| Discovered | 80 | 140 |
+| Excluded | 55 | 83 |
+| Accepted | 20 | 40 |
+| Online | 20 | 39 |
+| On-site in Egypt | 0 | 1 |
+| Active | 20 | 39 |
+| Unknown status | 0 | 1 |
+| Invalid / duplicate / missing details | 0 / 0 / 0 | 0 / 0 / 0 |
+| Unprocessed after acceptance cap | 5 | 17 |
+| Approximate runtime (seconds) | 54 | 93 |
+
+The second run used max_jobs=40, page_size=20 and max_pages=10, with 47 successful HTTP requests. Both runs reported 167 available search results; neither establishes full coverage.
+
+The second run verified an Egyptian on-site assignment and preserved two distinct assignment IDs sharing a title. Similarity is candidate deduplication evidence, not proof of identity.
+
+Initial UN Volunteers integration: 66 source tests and 646 total tests passed. After the employment mapping correction and source scope tests, 71 source tests and 665 total tests passed. The live samples preceded that correction.
+
+### Remaining work
+
+Confirm production authorization, API stability, rate policies, full coverage, retry and recovery policies, privacy, persistent run tracking, checkpoints, PostgreSQL ingestion and Airflow scheduling.
+
+## ADR-039: UN Volunteers Eligibility and Lifecycle
+
+**Date:** 2026-11-25
+
+**Status:** Initial mapping implemented and tested; eligibility and lifecycle refinement pending.
+
+### Decision
+
+- Map assignments to volunteering. Accept explicitly online assignments globally and explicitly on-site assignments only when country code is EGY. Reject unknown modality.
+- Geographic filtering does not establish individual Egyptian eligibility. Preserve eligibility evidence and mark egypt_eligibility as unverified.
+- For online assignments, the country label represents the source-reported host country, not a required physical work location.
+- Require recruiting status (DOA_SOURCING), active sourcing, and explicit non-reserved and non-single-source flags.
+- Preserve original sourcing deadline in raw date fields; leave normalized deadline null with unknown precision when a raw deadline exists because closing-time semantics are unverified.
+- For parseable deadline dates, use the current UTC observation date: before the deadline date is active; from the deadline date through two days afterward is unknown; later dates are excluded. Missing or unparseable deadlines produce unknown status. This conservative buffer is provisional, not a verified source timezone rule.
+- Map explicit FULLTIME and PARTTIME arrangement codes to full_time and part_time. Missing or unrecognized arrangements are null, not an empty array, consistent with ADR-011.
+- Preserve experience values and units, duration, hours, volunteer category, nationality category, education and language evidence without inventing normalized experience or salary values.
+- Record online compensation as unpaid in selected raw metadata; on-site compensation remains unverified. Do not treat volunteering allowances as salary without evidence.
+
+### Remaining work
+
+Verify nationality and individual eligibility, application availability, deadline timezone and buffer, experience units, conflicting hours labels and codes, duration semantics, and category metadata. Review host versus execution location semantics before downstream filtering. Define version tracking for meaningful raw-only metadata changes and review free-text privacy. Preserve distinct source IDs until deduplication evidence is sufficient. Persistent lifecycle reconciliation remains pending; absence from a bounded run is not proof of closure.
+
+## ADR-040: Final Data Source Scope
+
+**Date:** 2026-11-25
+
+**Status:** Final collection scope selected by project collection owner; code and automated scope tests verified locally; documentation synchronization and team contract review pending.
+
+### Decision
+
+The initial project collection scope is closed at eight sources:
+
+- wuzzuf
+- forasna
+- egyincs
+- itida
+- nti
+- bayt
+- devpost
+- un_volunteers
+
+AMIDEAST, LinkedIn, Tanqeeb and the proposed replacement job source are outside the active scope. No additional source implementation is planned for this milestone.
+
+All eight adapters are implemented and bounded-live validated. SourceName and SOURCE_CONFIGS now agree on the eight sources; all are enabled. Automated tests verify registry and model consistency and reject out-of-scope configuration requests. The full regression baseline is 665 passing tests.
+
+### Contract compatibility
+
+Removing amideast from SourceName narrows the accepted enumeration and is a breaking change relative to the documented v2.1.0 contract under ADR-015. Data Contract v3.0.0 is proposed to reflect this change, pending team review and confirmation of compatibility requirements. The previous contract version remains a historical reference.
+
+### Consequences
+
+The next milestone is persistent ingestion design and integration with the Data Warehouse owner, including identity, raw observation retention, content history, transactions, invalid records, checkpoints and lifecycle. Production authorization, coverage, orchestration and end-to-end validation remain pending. Historical milestones retain their original test counts and scope context.

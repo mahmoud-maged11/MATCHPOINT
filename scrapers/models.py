@@ -34,7 +34,6 @@ SourceName = Literal[
     "itida",
     "nti",
     "bayt",
-    "amideast",
     "devpost",
     "un_volunteers"
 ]
