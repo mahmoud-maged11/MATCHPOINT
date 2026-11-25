@@ -353,6 +353,46 @@ schema fields or change existing allowed values.
 
 The Data Contract remains v2.1.0.
 
+### 5.8 ITIDA Source-Specific Implementation Notes
+
+ITIDA collects supported training program pages and event
+archive records from the English SharePoint website.
+
+Collection uses HTML parsing and ASP.NET postback pagination.
+
+Source-specific rules:
+
+- source_name is itida.
+- source_opportunity_id uses program:<slug> or event:<slug>.
+- URL path casing is preserved for collection.
+- Identity slugs are normalized to lowercase.
+- Program opportunity types use an explicit mapping.
+- Event opportunity types use recognized source categories.
+- Hidden page content is excluded.
+- Original event start and end dates are retained in raw_payload.
+- Event dates are not application deadlines.
+- Missing application deadlines remain null.
+- Missing salary and experience information remains null.
+- Missing structured eligibility information remains null.
+- Expired and closed records are retained for historical analysis.
+- Unknown registration availability produces unknown status.
+- Permanent program pages do not establish active enrollment.
+
+The current implementation attributes records to ITIDA.
+Specific organizers, training providers and partner organizations
+require additional enrichment.
+
+Company-oriented programs and informational pages require
+eligibility review before inclusion in individual recommendations.
+
+The current implementation does not fully distinguish program
+definitions from individual application cohorts.
+
+The initial collector was validated on 20 live records on
+2026-11-25, including 9 programs and 11 event archive records.
+
+These implementation notes do not introduce new schema fields.
+The data contract remains at version 2.1.0.
 
 ## 6. Source Identity and Deduplication
 

@@ -180,7 +180,7 @@ must be coordinated with the Data Warehouse owner.
 
 - [x] Forasna (collector implementation and bounded live validation)
 - [x] Egyincs (collector implementation and bounded live validation)
-- [ ] ITIDA
+- [x] ITIDA (collector implementation and bounded live validation)
 - [ ] NTI
 - [ ] Bayt
 - [ ] LinkedIn
@@ -311,6 +311,70 @@ For each source:
 - [ ] Implement incremental collection and lifecycle reconciliation.
 - [ ] Verify source-to-Bronze integration.
 
+### ITIDA Collection Milestone
+
+Status: Initial collector implemented and live validated
+Date: 2026-11-25
+
+Completed:
+
+- [x] Investigate ITIDA website structure.
+- [x] Inspect robots.txt rules.
+- [x] Identify SharePoint program and event pages.
+- [x] Investigate visible and hidden HTML content.
+- [x] Validate ASP.NET postback pagination.
+- [x] Extend shared HTTPClient with POST support.
+- [x] Implement ITIDA mapper.
+- [x] Implement ITIDA collector.
+- [x] Implement supported program discovery.
+- [x] Implement bounded event pagination.
+- [x] Implement stable source identities.
+- [x] Implement conservative lifecycle normalization.
+- [x] Retain historical opportunities.
+- [x] Integrate ITIDA into the collection CLI.
+- [x] Implement mapper and collector unit tests.
+- [x] Fix nested hidden HTML element handling.
+- [x] Complete bounded live collection validation.
+
+Validation results:
+
+- Independent pagination: 3 pages and 18 unique event URLs.
+- Integrated collection: 20 accepted records.
+- Programs: 9.
+- Event archive records: 11.
+- Event listing pages: 2.
+- Invalid records: 0.
+- Duplicate records: 0.
+- Unavailable records: 0.
+- Successful HTTP requests: 24.
+- Execution time: approximately 52 seconds.
+- ITIDA-specific tests: 64 passed.
+- Full regression suite: 334 passed.
+
+### ITIDA Remaining Integration Work
+
+- [ ] Validate all supported program page classifications.
+- [ ] Review company-oriented Train to Hire programs.
+- [ ] Distinguish permanent programs from application cohorts.
+- [ ] Extract verified application URLs.
+- [ ] Improve program eligibility extraction.
+- [ ] Improve location normalization.
+- [ ] Extract delivery and work mode information.
+- [ ] Improve organizer and training-provider attribution.
+- [ ] Normalize event dates using the source-local timezone.
+- [ ] Validate pagination beyond the initial bounded sample.
+- [ ] Improve pagination state management.
+- [ ] Prevent duplicate postback requests at archive termination.
+- [ ] Evaluate dynamic discovery beyond the program allowlist.
+- [ ] Investigate news and press release opportunities.
+- [ ] Investigate Arabic page coverage.
+- [ ] Implement incremental collection and checkpointing.
+- [ ] Integrate PostgreSQL persistence.
+- [ ] Integrate Airflow orchestration.
+- [ ] Validate production execution and monitoring.
+
+Historical and informational records must not be presented
+as currently actionable opportunities without supporting evidence.
 
 ## 5. Data Validation and Normalization
 
@@ -585,6 +649,13 @@ For each source:
 
 ### Deferred: Shared Collection Reliability
 
+- [ ] Separate GET and POST retry policies.
+- [ ] Restore safe GET connection retries.
+- [ ] Verify transport-level POST replay prevention.
+- [ ] Validate redirect destinations before following redirects.
+- [ ] Improve ASP.NET pagination session-state isolation.
+- [ ] Validate source-local timezone handling.
+- [ ] Review hidden HTML removal across all HTML mappers.
 - [ ] Implement retry-aware and redirect-aware request pacing.
 - [ ] Coordinate rate limits across concurrent workers.
 - [ ] Review robots.txt wildcard matching and crawl-delay policies.
@@ -637,9 +708,25 @@ For each source:
 
 ### Current Collection Milestone
 
-- Wuzzuf: implemented, bounded live validation completed, committed and pushed.
-- Forasna: implemented, bounded live validation completed, committed and pushed.
-- Egyincs: implemented and bounded live validation completed.
-- Remaining sources: seven.
-- Current automated test baseline: 260 passing.
-- Physical storage and production orchestration are not yet verified.
+Initial collectors implemented and bounded live validated:
+
+- [x] Wuzzuf
+- [x] Forasna
+- [x] Egyincs
+- [x] ITIDA
+- [ ] NTI
+- [ ] Bayt
+- [ ] LinkedIn
+- [ ] AMIDEAST
+- [ ] Devpost
+- [ ] UN Volunteers
+
+Progress: 4 of 10 initial source collectors (40%).
+
+Current automated regression baseline: 334 passed.
+
+Next source: NTI.
+
+Collector completion does not imply production readiness,
+persistent ingestion, full source coverage, verified active
+opportunities or completed warehouse integration.

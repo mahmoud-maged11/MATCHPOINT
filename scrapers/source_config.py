@@ -37,6 +37,10 @@ SOURCE_CONFIGS = {
         base_url="https://egyincs.com",
         enabled=True,
     ),
+    "itida": SourceConfig(
+        base_url="https://itida.gov.eg",
+        enabled=True
+    ),
 }
 
 

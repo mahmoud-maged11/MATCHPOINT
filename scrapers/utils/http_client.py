@@ -50,6 +50,8 @@ class HTTPClient:
 
         retry_strategy = Retry(
             total=self.max_retries,
+            connect=0,
+            other=0,
             backoff_factor=2,
             status_forcelist=[429, 500, 502, 503, 504],
             allowed_methods=["GET"],
@@ -97,6 +99,56 @@ class HTTPClient:
 
             self.logger.error(
                 f"Request failed: {error}"
+            )
+
+            raise
+
+    def post(
+            self,
+            url: str,
+            data: dict | None = None,
+            headers: dict | None = None
+    ):
+
+        if (
+                self.source_config is not None
+                and not self.source_config.enabled
+        ):
+            raise PermissionError(
+                "Live collection is disabled for this source"
+            )
+
+        self.logger.info(f"POST Requesting: {url}")
+
+        try:
+            self.rate_limiter.wait()
+
+            response = self.session.post(
+                url,
+                data=data,
+                headers=headers,
+                timeout=self.request_timeout,
+                allow_redirects=False
+            )
+
+            response.raise_for_status()
+
+            if 300 <= response.status_code < 400:
+                raise requests.HTTPError(
+                    "Unexpected POST redirect",
+                    response=response
+                )
+
+            self.logger.info(
+                f"POST successful: {response.status_code}"
+            )
+
+            return response
+
+        except requests.RequestException as error:
+
+            self.logger.error(
+                f"POST request failed: {error}"
             )
 
             raise

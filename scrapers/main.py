@@ -4,6 +4,7 @@ from scrapers.sources.wuzzuf import WuzzufScraper
 from scrapers.sources.wuzzuf_api import WuzzufAPIScraper
 from scrapers.sources.forasna import ForasnaScraper
 from scrapers.sources.egyincs import EgyincsScraper
+from scrapers.sources.itida import ITIDAScraper
 
 
 def main():
@@ -15,7 +16,7 @@ def main():
     parser.add_argument(
         "--source",
         required=True,
-        choices=["wuzzuf", "forasna", "egyincs"],
+        choices=["wuzzuf", "forasna", "egyincs", "itida"]
     )
 
     parser.add_argument(
@@ -76,7 +77,7 @@ def main():
             max_pages=args.max_pages,
         )
 
-    else:
+    elif args.source == "egyincs":
 
         mode = args.mode or "api"
 
@@ -88,6 +89,18 @@ def main():
             page_size=args.page_size,
             max_pages=args.max_pages,
             endpoint=args.endpoint or "all",
+        )
+
+    elif args.source == "itida":
+
+        mode = args.mode or "html"
+
+        if mode != "html" or args.html_path is not None:
+            parser.error("ITIDA supports live HTML collection only")
+
+        scraper = ITIDAScraper(
+            max_jobs=args.max_jobs,
+            max_pages=args.max_pages,
         )
 
     opportunities = scraper.run()

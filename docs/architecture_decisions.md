@@ -643,3 +643,173 @@ Production readiness additionally requires:
 
 Completing a source adapter does not imply that these
 production requirements have been completed.
+---
+
+## ADR-029: ITIDA SharePoint Collection and ASP.NET Pagination
+
+Date: 2026-11-25
+Status: Implemented and validated within bounded collection
+
+### Context
+
+ITIDA uses SharePoint pages and ASP.NET server-side pagination
+for its English events archive.
+
+The archive does not expose conventional page-number URLs
+for navigating between event listing pages.
+
+### Collection Method
+
+- Use Requests and BeautifulSoup.
+- Discover supported programs from the programs listing.
+- Discover event detail URLs from the events archive.
+- Use a configurable allowlist for supported program pages.
+- Preserve the HTTP session and cookies during pagination.
+- Extract postback targets and arguments dynamically.
+- Reconstruct the ASP.NET form using current form values.
+- Preserve VIEWSTATE and EVENTVALIDATION during pagination.
+- Do not hardcode session-specific form values.
+- Apply robots.txt checks and source-level request pacing.
+- Enforce configurable collection and pagination limits.
+- Exclude hidden HTML content from normalized descriptions.
+
+### Source Identity
+
+Use page type and normalized URL slug as source identity:
+
+- program:<slug>
+- event:<slug>
+
+Preserve the original URL path casing for HTTP requests.
+
+Normalize identity casing to prevent duplicate records caused
+by SharePoint URL variations.
+
+### Verification on 2026-11-25
+
+Independent pagination validation:
+
+- 3 event listing pages.
+- 18 unique event URLs.
+- 0 overlapping event URLs.
+- Successful HTTP GET and POST requests.
+
+Integrated collector validation:
+
+- 9 program records.
+- 11 event archive records.
+- 20 accepted records.
+- 2 event listing pages processed.
+- 24 successful HTTP requests.
+- 0 duplicate records.
+- 0 unavailable records.
+- 0 invalid records.
+- Approximately 52 seconds execution time.
+
+Automated verification:
+
+- 64 ITIDA-specific tests passed.
+- 16 HTTPClient tests passed.
+- 334 total regression tests passed.
+
+### Limitations
+
+- Full archive coverage has not been validated.
+- Integrated pagination beyond two pages remains unverified.
+- English pages only.
+- Program discovery is limited to the configured allowlist.
+- News and press release discovery are deferred.
+- GET redirects are not prevented before destination checks.
+- Persistent storage and scheduled execution remain pending.
+
+---
+
+## ADR-030: ITIDA Program and Event Lifecycle
+
+Date: 2026-11-25
+Status: Initial implementation
+
+### Decisions
+
+- Retain expired events and closed programs for historical analysis.
+- Do not interpret a permanent program page as an active application.
+- Use unknown status when registration availability is unverified.
+- Mark Summer Training as closed when both observed registration
+  tracks explicitly report closed registration.
+- Evaluate event expiration using the observed event end date.
+- Do not interpret event dates as application deadlines.
+- Preserve original event date strings in raw_payload.
+- Leave unsupported or unavailable normalized fields null.
+- Keep event categories separate from required skills.
+
+### Live Status Distribution
+
+- Active: 0
+- Closed: 1
+- Expired: 11
+- Unknown: 8
+
+### Remaining Work
+
+- Distinguish permanent programs from individual cohorts.
+- Review company-oriented programs for individual eligibility.
+- Exclude informational records from actionable recommendations.
+- Extract verified application URLs.
+- Improve program eligibility and location extraction.
+- Normalize online and in-person delivery information.
+- Evaluate event dates using the source-local timezone.
+- Validate historical and current registration states separately.
+- Improve organizer and training-provider attribution.
+
+The initial collector milestone does not establish that all
+collected program pages are actionable individual opportunities.
+
+---
+
+## ADR-031: Shared HTTPClient POST Support
+
+Date: 2026-11-25
+Status: Implemented with reliability limitations
+
+### Decision
+
+Extend the shared HTTPClient with POST support for public
+listing pagination that requires server-side form submission.
+
+The implementation:
+
+- Reuses the existing requests.Session.
+- Reuses the configured request timeout.
+- Reuses source-level request pacing.
+- Respects disabled source configuration.
+- Rejects POST redirects.
+- Propagates HTTP and network errors.
+- Does not intentionally log submitted form payloads.
+
+### Retry Policy
+
+Automatic status retries remain restricted to GET.
+
+Connection and other retry categories are currently disabled
+to reduce unintended POST replay.
+
+This temporary policy also disables connection retries for GET.
+
+### Verification
+
+- POST request configuration.
+- Disabled source enforcement.
+- Redirect rejection.
+- HTTP error propagation.
+- Timeout propagation.
+- Retry configuration.
+- Successful live ITIDA postback requests.
+
+### Remaining Work
+
+- Separate GET and POST retry policies without losing session state.
+- Verify non-idempotent POST replay prevention at transport level.
+- Restore safe GET connection retries.
+- Apply request pacing to internal retry attempts.
+- Improve redirect handling and destination validation.
+- Review robots.txt handling across all source adapters.
