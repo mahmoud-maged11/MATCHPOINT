@@ -36,10 +36,12 @@ SOURCE_CONFIGS = {
         base_url="https://egyincs.com",
         enabled=True,
     ),
+
     "itida": SourceConfig(
         base_url="https://itida.gov.eg",
-        enabled=True
+        enabled=True,
     ),
+
     "nti": SourceConfig(
         base_url="https://www.nti.sci.eg",
         enabled=True,
@@ -49,8 +51,8 @@ SOURCE_CONFIGS = {
         base_url="https://www.bayt.com",
         enabled=True,
     ),
-}
 
+}
 
 def get_source_config(source_name: str) -> SourceConfig:
 

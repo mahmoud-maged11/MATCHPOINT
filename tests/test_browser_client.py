@@ -15,7 +15,7 @@ def browser_setup():
 
         playwright = (
             mock_playwright.return_value
-            .__enter__.return_value
+            .start.return_value
         )
 
         browser = playwright.chromium.launch.return_value

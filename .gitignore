@@ -272,3 +272,9 @@ Thumbs.db
 
 # Real source HTML fixtures
 /tests/fixtures/wuzzuf_sample.html
+
+
+
+
+# Local source exploration data
+/data/tanqeeb/

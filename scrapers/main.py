@@ -1,5 +1,6 @@
 import argparse
-
+import json
+from pathlib import Path
 from scrapers.sources.wuzzuf import WuzzufScraper
 from scrapers.sources.wuzzuf_api import WuzzufAPIScraper
 from scrapers.sources.forasna import ForasnaScraper
@@ -7,6 +8,7 @@ from scrapers.sources.egyincs import EgyincsScraper
 from scrapers.sources.itida import ITIDAScraper
 from scrapers.sources.nti import NTIScraper
 from scrapers.sources.bayt import BaytScraper
+from pathlib import Path
 
 
 def main():
@@ -18,16 +20,24 @@ def main():
     parser.add_argument(
         "--source",
         required=True,
-        choices=["wuzzuf", "forasna", "egyincs", "itida", "nti", "bayt"],
-    )
+        choices=[
+            "wuzzuf",
+            "forasna",
+            "egyincs",
+            "itida",
+            "nti",
+            "bayt",
+        ],    )
 
     parser.add_argument(
         "--mode",
-        choices=["html", "api"],
+        choices=["html", "api", "live"],
         default=None,
     )
 
     parser.add_argument("--html-path")
+    parser.add_argument("--details-dir")
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--max-jobs", type=int, default=20)
     parser.add_argument("--page-size", type=int, default=20)
     parser.add_argument("--max-pages", type=int, default=10)
@@ -131,7 +141,32 @@ def main():
         )
 
 
+
+
     opportunities = scraper.run()
+    if args.output:
+
+        args.output.parent.mkdir(
+            parents=True,
+            exist_ok=True
+        )
+
+        payload = [
+            opportunity.model_dump(mode="json")
+            for opportunity in opportunities
+        ]
+
+        args.output.write_text(
+            json.dumps(
+                payload,
+                ensure_ascii=False,
+                indent=2
+            ),
+            encoding="utf-8"
+        )
+
+        print(f"Results saved to: {args.output}")
+
 
     print(f"\nTotal opportunities: {len(opportunities)}\n")
 

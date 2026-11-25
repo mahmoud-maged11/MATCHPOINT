@@ -183,7 +183,7 @@ must be coordinated with the Data Warehouse owner.
 - [x] ITIDA (collector implementation and bounded live validation)
 - [x] NTI
 - [ ] Bayt
-- [ ] LinkedIn
+- [ ] Replacement job source (TBD)
 - [ ] AMIDEAST
 - [ ] Devpost
 - [ ] UN Volunteers
@@ -716,7 +716,7 @@ Initial collectors implemented and bounded live validated:
 - [x] ITIDA
 - [x] NTI
 - [ ] Bayt
-- [ ] LinkedIn
+- [ ] Replacement job source (TBD)
 - [ ] AMIDEAST
 - [ ] Devpost
 - [ ] UN Volunteers
@@ -799,7 +799,7 @@ Initially implemented and bounded-live validated sources:
 Remaining initial source implementations:
 
 6. Bayt
-7. LinkedIn Jobs
+7. Replacement job source (TBD)
 8. AMIDEAST
 9. Devpost
 10. UN Volunteers
@@ -856,8 +856,8 @@ This milestone does not represent full production readiness.
 - Completed source implementations: 6/10 (60%).
 - Completed: Wuzzuf, Forasna, Egyincs, ITIDA, NTI, Bayt.
 - Total regression tests: 498 passed.
-- Next source: LinkedIn.
-- Remaining: LinkedIn, AMIDEAST, Devpost, UN Volunteers.
+- Next source: Replacement job source (TBD).
+- Remaining: Replacement job source (TBD), AMIDEAST, Devpost, UN Volunteers.
 
 Production coverage, incremental collection, persistent
 storage and orchestration integration remain pending.

@@ -99,7 +99,6 @@ Source listings and canonical opportunities must remain independently identifiab
 - itida
 - nti
 - bayt
-- linkedin
 - amideast
 - devpost
 - un_volunteers
