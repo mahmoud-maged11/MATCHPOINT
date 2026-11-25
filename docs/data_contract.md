@@ -450,6 +450,70 @@ The existing data contract version remains 2.1.0.
 
 ---
 
+### 5.10 Bayt
+
+**Source name:** `bayt`
+
+**Collection method:** Hybrid HTML and JSON-LD.
+
+**Base URL:** `https://www.bayt.com`
+
+**Listing URL:** `https://www.bayt.com/en/egypt/jobs/`
+
+| Canonical field | Source mapping |
+|---|---|
+| source_opportunity_id | Numeric ID in canonical job URL |
+| source_url | Validated job detail URL |
+| title | JobPosting.title with HTML entity normalization |
+| organization | JobPosting.hiringOrganization; confidential becomes null |
+| opportunity_type | Structured internship evidence or explicit internship title; otherwise job |
+| description | Visible description with JSON-LD fallback |
+| requirements | Visible skills, major and preferred residence |
+| required_skills | Null pending reliable skill classification |
+| location | Egyptian JobPosting address |
+| employment_types | Structured employmentType |
+| work_modes | Structured TELECOMMUTE mapped to remote |
+| experience_level | Normalized visible career level |
+| experience_level_raw | Original visible career level |
+| experience_years_min | Explicit experience field or structured months |
+| experience_years_max | Explicit experience range |
+| education_level | Visible degree or structured credential category |
+| salary_min | Valid structured salary minimum or fixed value |
+| salary_max | Valid structured salary maximum or fixed value |
+| currency | Valid ISO 4217 currency |
+| salary_period | Normalized structured salary unit |
+| published_at | Timezone-aware datePosted when available |
+| published_at_raw | Original datePosted |
+| published_at_precision | Exact, date_only or unknown |
+| deadline | Timezone-aware validThrough when available |
+| deadline_raw | Original validThrough |
+| deadline_precision | Exact, date_only or unknown |
+| status | Application evidence and shared deadline resolution |
+| source_status_raw | Original application status evidence |
+| raw_payload | Selected source-specific metadata |
+
+#### Source-specific rules
+
+- URL identity takes precedence over JSON-LD identifier.
+- Missing or unconfirmed Egyptian location is excluded.
+- Date-only publication values retain raw text and precision.
+- Missing salary information remains null.
+- External and aggregated flags are not application status.
+- directApply=false does not imply a closed opportunity.
+- Free-text requirements are not automatically mandatory skills.
+- Fresh graduate career levels map to entry_level.
+- Collection limits are development controls, not evidence
+  of complete source coverage.
+
+#### Validation
+
+- 98 source-specific unit tests passed.
+- 498 total regression tests passed.
+- Live sample: 35 unique active jobs across two listing pages.
+- Zero invalid records in the live sample.
+- Structured salary fields were populated in the live sample.
+- Live internship and closed/expired cases remain unverified.
+
 ## 6. Source Identity and Deduplication
 
 ### 6.1 Source Listing Identity

@@ -959,3 +959,88 @@ normalized opportunity content hash.
 
 NTI is considered initially implemented and bounded-live validated,
 not production-complete.
+
+---
+
+## ADR-034: Bayt Hybrid HTML and JSON-LD Collection
+
+**Date:** 2026-11-25
+
+**Status:** Accepted
+
+### Context
+
+Bayt provides Egyptian job listings through public HTML
+pages. JSON-LD ItemList data was observed on the first
+listing page but was absent on subsequent sampled pages.
+
+### Decision
+
+- Use HTML job links as the primary discovery mechanism.
+- Use JSON-LD ItemList as a supplementary discovery mechanism.
+- Extract job details from JSON-LD JobPosting and visible
+  HTML fields.
+- Follow validated sequential pagination links.
+- Use the numeric job ID in the canonical URL as source identity.
+- Preserve the JSON-LD identifier separately in raw_payload.
+- Deduplicate by source opportunity ID.
+- Restrict collection to validated Egyptian job URLs.
+- Check robots.txt before collection.
+- Retain bounded collection limits for development runs.
+
+### Validation
+
+- 35 unique opportunities collected.
+- 2 listing pages processed.
+- 60 job appearances discovered.
+- 35 detail pages fetched.
+- 38 successful HTTP responses.
+- Zero invalid records and duplicate IDs.
+- All 35 collected opportunities were active jobs.
+- Approximately 74 seconds of execution time.
+
+### Consequences
+
+Full production coverage, incremental collection,
+redirect prevention, robots wildcard support and
+authorization scope remain subject to further work.
+
+---
+
+## ADR-035: Bayt Conservative Field Normalization
+
+**Date:** 2026-11-25
+
+**Status:** Accepted
+
+### Decision
+
+- Normalize HTML entities in textual fields.
+- Map Fresh graduate and Fresh graduates to entry_level.
+- Preserve confidential organizations as null.
+- Use explicit structured employment types.
+- Map structured TELECOMMUTE to remote.
+- Preserve experience and education evidence.
+- Use currency as the canonical salary currency field.
+- Preserve date-only publication values without inventing
+  timestamps.
+- Normalize timezone-aware deadlines to UTC.
+- Resolve lifecycle status using application evidence
+  and deadline information.
+- Preserve aggregated and external listing flags as
+  source metadata without assuming application destination.
+- Do not treat preferred skills as mandatory skills.
+- Retain selected source metadata rather than complete HTML.
+
+### Validation
+
+98 Bayt unit tests and 498 total regression tests passed.
+
+HTML entity and fresh graduate normalization fixes were
+validated through unit tests after the live collection.
+
+### Consequences
+
+Free-text experience extraction, work-mode reconciliation,
+semantic deduplication and skill classification remain
+deferred to subsequent enrichment work.

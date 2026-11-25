@@ -21,7 +21,6 @@ class SourceConfig:
     enabled: bool = False
 
 
-
 SOURCE_CONFIGS = {
     "wuzzuf": SourceConfig(
         base_url="https://wuzzuf.net",
@@ -42,9 +41,14 @@ SOURCE_CONFIGS = {
         enabled=True
     ),
     "nti": SourceConfig(
-    base_url="https://www.nti.sci.eg",
-    enabled=True,
-),
+        base_url="https://www.nti.sci.eg",
+        enabled=True,
+    ),
+
+    "bayt": SourceConfig(
+        base_url="https://www.bayt.com",
+        enabled=True,
+    ),
 }
 
 

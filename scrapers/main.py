@@ -6,6 +6,7 @@ from scrapers.sources.forasna import ForasnaScraper
 from scrapers.sources.egyincs import EgyincsScraper
 from scrapers.sources.itida import ITIDAScraper
 from scrapers.sources.nti import NTIScraper
+from scrapers.sources.bayt import BaytScraper
 
 
 def main():
@@ -17,7 +18,7 @@ def main():
     parser.add_argument(
         "--source",
         required=True,
-        choices=["wuzzuf", "forasna", "egyincs", "itida", "nti"],
+        choices=["wuzzuf", "forasna", "egyincs", "itida", "nti", "bayt"],
     )
 
     parser.add_argument(
@@ -116,6 +117,19 @@ def main():
             max_jobs=args.max_jobs,
             max_pages=args.max_pages,
         )
+
+    elif args.source == "bayt":
+
+        mode = args.mode or "html"
+
+        if mode != "html" or args.html_path is not None:
+            parser.error("Bayt supports live HTML collection only")
+
+        scraper = BaytScraper(
+            max_jobs=args.max_jobs,
+            max_pages=args.max_pages,
+        )
+
 
     opportunities = scraper.run()
 

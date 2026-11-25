@@ -809,3 +809,55 @@ Current milestone: 5 of 10 initial collectors implemented.
 Regression baseline: 400 passing tests.
 
 This milestone does not represent full production readiness.
+
+---
+
+## Bayt Implementation Milestone
+
+**Date:** 2026-11-25
+
+**Implementation status:** Completed and validated locally.
+
+- Hybrid listing discovery implemented.
+- JSON-LD and HTML detail mapping implemented.
+- Source configuration and CLI integration implemented.
+- Pagination and source ID deduplication implemented.
+- 98 Bayt unit tests passed.
+- 498 total regression tests passed.
+- Live collection returned 35 unique active jobs.
+- Two listing pages validated.
+- Zero invalid records in the live sample.
+
+### Bayt Deferred Tasks
+
+- [ ] Validate authorization scope for production collection.
+- [ ] Implement complete source coverage and pagination checkpoints.
+- [ ] Implement incremental collection and recovery.
+- [ ] Support robots.txt wildcard rules consistently.
+- [ ] Align actual HTTP User-Agent with robots evaluation.
+- [ ] Prevent unauthorized redirects before following them.
+- [ ] Improve handling of empty listings and terminal pages.
+- [ ] Validate remote eligibility when jobLocation is missing.
+- [ ] Reconcile structured work modes with explicit prose.
+- [ ] Improve free-text experience and education extraction.
+- [ ] Separate mandatory skills from preferred skills.
+- [ ] Validate live internship and closed/expired records.
+- [ ] Review salary range and period accuracy across more samples.
+- [ ] Investigate external and aggregated flag semantics.
+- [ ] Implement semantic deduplication across distinct source IDs.
+- [ ] Integrate persistent storage after warehouse schema agreement.
+
+---
+
+## Current Source Implementation Status
+
+**Last updated:** 2026-11-25
+
+- Completed source implementations: 6/10 (60%).
+- Completed: Wuzzuf, Forasna, Egyincs, ITIDA, NTI, Bayt.
+- Total regression tests: 498 passed.
+- Next source: LinkedIn.
+- Remaining: LinkedIn, AMIDEAST, Devpost, UN Volunteers.
+
+Production coverage, incremental collection, persistent
+storage and orchestration integration remain pending.
