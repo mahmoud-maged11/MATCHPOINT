@@ -178,7 +178,7 @@ must be coordinated with the Data Warehouse owner.
 
 **Priority:** P1
 
-- [ ] Forasna
+- [x] Forasna (collector implementation and bounded live validation)
 - [ ] Egyincs
 - [ ] ITIDA
 - [ ] NTI
@@ -198,6 +198,46 @@ For each source:
 - Implement pagination where applicable.
 - Validate extracted records.
 - Document source-specific limitations.
+
+
+### Forasna Collection Milestone
+
+- [x] Investigate website structure and robots.txt.
+- [x] Verify live HTML access.
+- [x] Identify search and detail page selectors.
+- [x] Implement JSON-LD and HTML hybrid extraction.
+- [x] Implement pagination using rel=next.
+- [x] Implement source ID extraction and validation.
+- [x] Implement duplicate ID detection.
+- [x] Filter listings using Egyptian country code EG.
+- [x] Extract descriptions, categories and requirements.
+- [x] Normalize Arabic experience ranges.
+- [x] Preserve original experience labels.
+- [x] Normalize timezone-aware dates to UTC.
+- [x] Implement salary extraction and missing salary handling.
+- [x] Implement application status and deadline evaluation.
+- [x] Implement internship classification.
+- [x] Verify internship classification against a live listing.
+- [x] Integrate Forasna with the shared CLI.
+- [x] Pass 55 Forasna-specific automated tests.
+- [x] Pass all 185 collection-layer automated tests.
+- [x] Collect 5 live opportunities for field validation.
+- [x] Collect 30 live opportunities across two search pages.
+- [x] Verify zero duplicate IDs and zero invalid records.
+
+### Forasna Remaining Integration Work
+
+- [ ] Verify disclosed salary extraction against live samples.
+- [ ] Verify freelance and remote classification against live samples.
+- [ ] Review ambiguous experience and employment classifications.
+- [ ] Review robots.txt wildcard and redirect handling.
+- [ ] Review source payload minimization and privacy.
+- [ ] Confirm production collection limits and scheduling.
+- [ ] Integrate PostgreSQL storage.
+- [ ] Persist collection runs and invalid records.
+- [ ] Implement incremental checkpoints.
+- [ ] Implement lifecycle reconciliation.
+- [ ] Verify source-to-Bronze integration.
 
 ## 5. Data Validation and Normalization
 
@@ -377,7 +417,7 @@ For each source:
 
 **Priority:** P2
 
-- [x] Implement collection-layer unit tests (130 passing).
+- [x] Implement collection-layer unit tests (185 passing).
 - [ ] Implement unit tests for remaining components.
 - [ ] Implement integration tests.
 - [ ] Implement end-to-end pipeline tests.

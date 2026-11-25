@@ -302,7 +302,7 @@ Warehouse integration requires review of Data Contract v2.1.0.
 
 ## ADR-018: Conservative Deadline Evaluation
 
-**Status:** Implemented and tested for Wuzzuf
+**Status:** Implemented and tested for Wuzzuf and Forasna
 
 **Decision:** Preserve unknown timezone information rather than
 assigning an unverified timezone.
@@ -406,3 +406,83 @@ Previously stored listings require a separate lifecycle reconciliation policy.
 Expired or closed listings must not be inferred solely from absence.
 
 Incremental checkpoints and overlap policies remain pending.
+
+
+## ADR-023: Forasna Hybrid Collection
+
+**Status:** Implemented and validated in bounded live runs;
+production scheduling and storage integration pending.
+
+**Decision:** Collect Forasna listings using HTTP requests,
+BeautifulSoup and a source-specific mapper.
+
+### Collection Method
+
+- Discover listings through the public search page.
+- Follow the source-provided rel=next pagination URL.
+- Extract numeric listing identifiers from job URLs.
+- Validate identifiers against JSON-LD when available.
+- Fetch individual job detail pages.
+- Combine JSON-LD JobPosting data with HTML fields.
+- Reuse the shared HTTP client and rate limiter.
+- Check robots.txt before requesting collection pages.
+- Reject unexpected source hosts.
+- Filter listings using country code EG.
+- Exclude expired and unconfirmed active listings.
+- Detect duplicate source identifiers within each run.
+
+### Normalization Rules
+
+- Preserve original Arabic experience labels.
+- Normalize Arabic and English digits.
+- Support Arabic singular and dual year expressions.
+- Extract experience ranges and minimum or maximum bounds.
+- Map student and fresh graduate labels to entry_level.
+- Map the combined manager/supervisor label to manager.
+- Preserve original values for later transformation review.
+- Represent strict experience bounds approximately.
+- Normalize timezone-aware timestamps to UTC.
+- Treat undisclosed salary and zero-zero salary ranges as null.
+- Do not infer missing salary periods.
+- Separate internship classification from employment arrangements.
+- Recognize INTERN and the Arabic training label as internship.
+- Preserve missing internship employment arrangements as null.
+- Do not infer skills from broad categories.
+- Exclude dedicated age, gender and applicant statistics fields
+  from selected structured payloads.
+
+### Status Evaluation
+
+The observed application button is used as an active status signal.
+A confirmed past deadline takes precedence.
+
+An application button does not guarantee application availability.
+
+Missing application status is treated as unknown.
+
+### Verification on 2026-11-25
+
+- Initial field validation: 5 accepted opportunities.
+- Initial field validation: 7 detail pages fetched.
+- Pagination validation: 2 search pages.
+- Pagination validation: 40 discovered listings.
+- Pagination validation: 32 detail pages fetched.
+- Pagination validation: 30 accepted opportunities.
+- Pagination validation: 2 listings excluded by country filtering.
+- Zero duplicate IDs and zero invalid records in the live samples.
+- Live internship classification verified using listing 448753.
+- 55 Forasna-specific automated tests passed.
+- 185 total automated tests passed.
+
+### Known Limitations
+
+- Disclosed salary parsing requires additional live verification.
+- Freelance and remote mappings require additional live samples.
+- Combined experience labels may lose semantic distinctions.
+- Source payloads contain selected and normalized values.
+- Free-text content and source URLs require privacy review.
+- Robots.txt checks do not establish comprehensive authorization.
+- Redirect and wildcard handling require additional review.
+- Bounded collection does not establish a complete source snapshot.
+- PostgreSQL ingestion, incremental collection and lifecycle
+  reconciliation remain pending.

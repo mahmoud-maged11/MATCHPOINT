@@ -2,7 +2,7 @@
 
 **Version:** 2.1.0
 
-**Status:** Implemented in collection models and Wuzzuf adapter; pending team review and warehouse integration
+**Status:** Implemented in collection models, Wuzzuf and Forasna adapters; pending team review and warehouse integration
 
 **Owners:** Data Collection & Data Warehouse Teams
 
@@ -285,6 +285,35 @@ Unknown must not be combined with known standardized values in the same array.
 - Source-provided skill tags are candidate skills until validated during transformation.
 - Broad academic fields and industry classifications must not automatically be treated as technical skills.
 - Skill normalization and taxonomy management are performed during transformation.
+
+
+### 5.6 Forasna Source-Specific Implementation Notes
+
+Forasna uses JSON-LD JobPosting metadata and HTML detail fields.
+
+- Numeric source listing IDs are extracted from job URLs.
+- JSON-LD identifiers are validated when available.
+- Egyptian listings are selected using country code EG.
+- Listings with missing country information are excluded.
+- Timezone-aware source dates are normalized to UTC.
+- Original Arabic experience labels and year expressions are retained.
+- Experience bounds are normalized into numeric fields.
+- Strict experience bounds are represented approximately.
+- Undisclosed and zero-zero salary ranges are normalized to null.
+- Missing salary periods are not inferred.
+- INTERN and the Arabic training label map to internship.
+- Internship is an opportunity type, not an employment arrangement.
+- Missing internship employment arrangements remain null.
+- Freelance and remote mappings require further live validation.
+- Application buttons provide an observed active status signal.
+- Confirmed past deadlines take precedence over active signals.
+- Missing application status is treated as unknown.
+- Selected structured payloads exclude dedicated age, gender
+  and applicant statistics fields.
+- Categories are not automatically converted into required skills.
+
+These implementation notes do not introduce new schema fields
+or change existing standardized values.
 
 ## 6. Source Identity and Deduplication
 

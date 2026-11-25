@@ -23,12 +23,15 @@ class SourceConfig:
 
 
 SOURCE_CONFIGS = {
-
     "wuzzuf": SourceConfig(
         base_url="https://wuzzuf.net",
-        enabled=True
-    )
+        enabled=True,
+    ),
 
+    "forasna": SourceConfig(
+        base_url="https://forasna.com",
+        enabled=True,
+    ),
 }
 
 
