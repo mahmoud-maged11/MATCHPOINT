@@ -9,6 +9,7 @@ from scrapers.sources.itida import ITIDAScraper
 from scrapers.sources.nti import NTIScraper
 from scrapers.sources.bayt import BaytScraper
 from pathlib import Path
+from scrapers.sources.tanqeeb_offline import TanqeebOfflineSource
 
 
 def main():
@@ -27,6 +28,7 @@ def main():
             "itida",
             "nti",
             "bayt",
+            "tanqeeb"
         ],    )
 
     parser.add_argument(
@@ -126,6 +128,25 @@ def main():
         scraper = NTIScraper(
             max_jobs=args.max_jobs,
             max_pages=args.max_pages,
+        )
+
+    elif args.source == "tanqeeb":
+
+        if args.mode != "html":
+            parser.error(
+                "Tanqeeb currently supports offline HTML mode only"
+            )
+
+        if not args.html_path:
+            parser.error(
+                "Tanqeeb requires --html-path pointing to a directory"
+            )
+
+        scraper = TanqeebOfflineSource(
+            listings_dir=args.html_path,
+            details_dir=args.details_dir,
+            max_jobs=args.max_jobs or 20,
+            max_pages=args.max_pages or 5
         )
 
     elif args.source == "bayt":

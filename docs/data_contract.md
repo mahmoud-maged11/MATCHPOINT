@@ -695,3 +695,41 @@ Outstanding implementation tasks must be recorded in docs/pending_tasks.md.
 | 1.0.0 | Initial data contract |
 | 2.0.0 | Multiple employment types and work modes, source listing identity, canonical opportunities, date precision, experience ranges, category separation, content hashing, and deduplication rules |
 | 2.1.0 | Added salary period, original source status, conservative deadline handling, numeric hash normalization, and source payload minimization |
+
+## 5.11 Tanqeeb Source Mapping
+
+Source name: `tanqeeb`
+
+Opportunity types:
+- job
+- internship (title-based classification)
+
+Primary mapping:
+- source_opportunity_id: job URL identifier.
+- source_url: validated canonical URL when available.
+- title: JobPosting.title.
+- organization: hiringOrganization.name.
+- description: original structured description.
+- requirements: explicit qualification lists.
+- location: Egyptian structured address.
+- employment_types: JobPosting.employmentType.
+- work_modes: HTML job tags or TELECOMMUTE.
+- categories: HTML category and industry metadata.
+- published_at: datePosted.
+- deadline: validThrough.
+
+Source-specific semantics:
+- Leading zeros in identifiers must be preserved.
+- datePosted represents the Tanqeeb listing date.
+- validThrough represents listing validity, not necessarily
+  the original employer application deadline.
+- Apply button presence does not prove active status.
+- Missing or low-quality descriptions remain null.
+- Structured Egyptian location is required.
+- Category and industry are preserved separately in raw_payload.
+- Status remains unknown unless expiration is established.
+
+Collection mode:
+- Offline HTML supported.
+- Live collection disabled.
+- Cached listing and detail files are excluded from Git.

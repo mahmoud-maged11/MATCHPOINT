@@ -1044,3 +1044,56 @@ validated through unit tests after the live collection.
 Free-text experience extraction, work-mode reconciliation,
 semantic deduplication and skill classification remain
 deferred to subsequent enrichment work.
+
+## ADR-036: Tanqeeb as LinkedIn Replacement Candidate
+
+**Status:** Accepted for offline implementation.
+
+Tanqeeb was selected as a replacement candidate for LinkedIn.
+
+The source uses public HTML pages containing structured
+JSON-LD data.
+
+Architecture:
+- ItemList for job discovery.
+- JobPosting for structured job details.
+- HTML metadata for categories, industry and work modes.
+- Canonical URL validation for source identity.
+- String-based job IDs preserving leading zeros.
+- Dependency injection for collection and offline testing.
+
+Validation:
+- 3 listing pages processed.
+- 60 discovered listings.
+- 17 Egyptian jobs.
+- 43 non-Egyptian jobs excluded.
+- Zero duplicate job IDs.
+- Zero invalid discovery URLs.
+
+Live collection remains disabled pending authorization
+and operational validation.
+
+
+## ADR-037: Tanqeeb Bounded Collection and Offline Validation
+
+**Status:** Accepted.
+
+The collector supports bounded pagination, job limits,
+deduplication, missing detail handling and invalid records.
+
+Listing requests observed during investigation required
+approximately 31 to 37 seconds per page.
+
+Full historical crawling is therefore not recommended
+as a default recurring collection strategy.
+
+Offline validation:
+- 37 Tanqeeb tests passed.
+- 535 total project tests passed.
+- 2 cached detail pages mapped successfully.
+- 1 matching detail collected through the CLI.
+- 16 discovered jobs had no cached detail page.
+- JSON export verified.
+
+Future live collection should use bounded incremental
+runs, checkpoints and controlled request pacing.

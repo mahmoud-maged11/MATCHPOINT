@@ -183,7 +183,7 @@ must be coordinated with the Data Warehouse owner.
 - [x] ITIDA (collector implementation and bounded live validation)
 - [x] NTI
 - [ ] Bayt
-- [ ] Replacement job source (TBD)
+- [ ] Tanqeeb (offline validated; live pending)
 - [ ] AMIDEAST
 - [ ] Devpost
 - [ ] UN Volunteers
@@ -716,7 +716,7 @@ Initial collectors implemented and bounded live validated:
 - [x] ITIDA
 - [x] NTI
 - [ ] Bayt
-- [ ] Replacement job source (TBD)
+- [ ] Tanqeeb (offline validated; live pending)
 - [ ] AMIDEAST
 - [ ] Devpost
 - [ ] UN Volunteers
@@ -799,7 +799,7 @@ Initially implemented and bounded-live validated sources:
 Remaining initial source implementations:
 
 6. Bayt
-7. Replacement job source (TBD)
+7. Tanqeeb (offline validated; live pending)
 8. AMIDEAST
 9. Devpost
 10. UN Volunteers
@@ -856,8 +856,42 @@ This milestone does not represent full production readiness.
 - Completed source implementations: 6/10 (60%).
 - Completed: Wuzzuf, Forasna, Egyincs, ITIDA, NTI, Bayt.
 - Total regression tests: 498 passed.
-- Next source: Replacement job source (TBD).
-- Remaining: Replacement job source (TBD), AMIDEAST, Devpost, UN Volunteers.
+- Next source: Tanqeeb (offline validated; live pending).
+- Remaining: Tanqeeb (offline validated; live pending), AMIDEAST, Devpost, UN Volunteers.
 
 Production coverage, incremental collection, persistent
 storage and orchestration integration remain pending.
+
+## Tanqeeb Pending Tasks
+
+Completed:
+- [x] Source investigation.
+- [x] Structured data mapping.
+- [x] Egyptian job discovery.
+- [x] Pagination validation.
+- [x] Canonical ID validation.
+- [x] Bounded collector.
+- [x] Offline collection interface.
+- [x] CLI integration.
+- [x] JSON export.
+- [x] 37 source-specific tests.
+- [x] Offline end-to-end validation.
+
+Pending:
+- [ ] Confirm authorization for automated collection.
+- [ ] Implement and validate the live HTTP adapter.
+- [ ] Validate current robots directives before live runs.
+- [ ] Implement controlled timeout and retry handling.
+- [ ] Implement incremental discovery and checkpoints.
+- [ ] Measure live detail collection completeness.
+- [ ] Validate original publisher attribution.
+- [ ] Handle structured and description location conflicts.
+- [ ] Improve internship classification.
+- [ ] Validate date-only expiration handling.
+- [ ] Remove time-dependent assumptions from collector tests.
+- [ ] Validate conflicting work-mode metadata.
+- [ ] Integrate persistent PostgreSQL storage.
+- [ ] Integrate Airflow scheduling.
+
+Current status: Offline implementation validated.
+Production live readiness: Pending.
