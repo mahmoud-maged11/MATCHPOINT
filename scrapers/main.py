@@ -8,6 +8,7 @@ from scrapers.sources.egyincs import EgyincsScraper
 from scrapers.sources.itida import ITIDAScraper
 from scrapers.sources.nti import NTIScraper
 from scrapers.sources.bayt import BaytScraper
+from scrapers.sources.devpost import DevpostScraper
 from pathlib import Path
 
 
@@ -27,6 +28,7 @@ def main():
             "itida",
             "nti",
             "bayt",
+            "devpost",
         ],    )
 
     parser.add_argument(
@@ -142,6 +144,22 @@ def main():
 
 
 
+
+    elif args.source == "devpost":
+
+        mode = args.mode or "api"
+
+        if (
+            mode != "api"
+            or args.html_path is not None
+            or args.details_dir is not None
+        ):
+            parser.error("Devpost supports API collection only")
+
+        scraper = DevpostScraper(
+            max_jobs=args.max_jobs,
+            max_pages=args.max_pages,
+        )
 
     opportunities = scraper.run()
     if args.output:

@@ -695,3 +695,82 @@ Outstanding implementation tasks must be recorded in docs/pending_tasks.md.
 | 1.0.0 | Initial data contract |
 | 2.0.0 | Multiple employment types and work modes, source listing identity, canonical opportunities, date precision, experience ranges, category separation, content hashing, and deduplication rules |
 | 2.1.0 | Added salary period, original source status, conservative deadline handling, numeric hash normalization, and source payload minimization |
+
+### 5.11 Devpost
+
+**Source name:** `devpost`
+
+**Opportunity type:** `hackathon`
+
+**Collection method:** API discovery with HTML and
+JSON-LD detail enrichment.
+
+**Initial scope:** Explicitly online, public,
+open or upcoming hackathons.
+
+| Contract field | Source mapping |
+|---|---|
+| source_name | devpost |
+| source_opportunity_id | API id converted to string |
+| source_url | Validated hackathon subdomain URL |
+| title | API title |
+| organization | API organization_name or JSON-LD organizer |
+| description | HTML challenge description or JSON-LD fallback |
+| opportunity_type | hackathon |
+| location | Online |
+| work_modes | remote |
+| categories | Deduplicated API theme names |
+| requirements | HTML requirements and eligibility text |
+| deadline | Normalized submission end date |
+| deadline_raw | JSON-LD endDate or API date fallback |
+| deadline_precision | Shared datetime normalization |
+| source_status_raw | API open_state |
+| status | active for open, unknown for upcoming, subject to resolver |
+| collected_at | UTC observation timestamp |
+| published_at | null |
+| salary_min | null |
+| salary_max | null |
+| currency | null |
+| salary_period | null |
+
+#### Raw payload
+
+Preserve the following source-specific evidence:
+
+- api_id
+- open_state
+- displayed_location
+- submission_period_dates
+- time_left_to_submission
+- submission_start_raw
+- submission_end_raw
+- deadline_kind
+- registration_deadline
+- registration_url
+- rules_url
+- prize_amount_raw
+- prizes_counts
+- registrations_count
+- invite_only
+- themes
+- eligibility
+- country_list_title
+- listed_countries
+- included_countries
+- excluded_countries
+- egypt_eligibility
+
+#### Semantic constraints
+
+- The normalized deadline represents the submission
+  cutoff, not a verified registration deadline.
+- Registration URLs do not prove registration is open.
+- Prize amounts are not employment compensation.
+- Upcoming hackathons retain unknown normalized status.
+- Online delivery does not imply worldwide eligibility.
+- Egyptian eligibility remains unverified.
+- Aggregate registration counts are not participant
+  personal records.
+- Missing descriptions cause record rejection.
+- Restricted country lists must be available before
+  the opportunity can pass geographic filtering.

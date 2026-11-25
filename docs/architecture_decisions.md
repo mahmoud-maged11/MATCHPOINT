@@ -1044,3 +1044,131 @@ validated through unit tests after the live collection.
 Free-text experience extraction, work-mode reconciliation,
 semantic deduplication and skill classification remain
 deferred to subsequent enrichment work.
+
+## ADR-036: Devpost API and HTML Hybrid Collection
+
+**Status:** Accepted
+
+**Date:** 2026-11-25
+
+### Context
+
+Devpost provides hackathon discovery through a JSON API
+and detailed opportunity information through individual
+hackathon subdomains.
+
+The listing API provides stable identifiers, titles,
+organizations, themes, submission periods, location
+information, invitation status, and prize information.
+
+Individual detail pages provide descriptions,
+requirements, eligibility restrictions, registration
+links, rules links, and structured JSON-LD event dates.
+
+### Decision
+
+- Use the Devpost hackathons API for discovery.
+- Use HTML and JSON-LD for detail enrichment.
+- Collect open and upcoming hackathons.
+- Use round-robin collection across both statuses.
+- Restrict the initial adapter to explicitly online
+  and non-invitation-only opportunities.
+- Apply bounded pagination independently per status.
+- Deduplicate using source identifiers and canonical URLs.
+- Validate source URLs and disable HTTP redirects.
+- Check and cache robots.txt independently per host.
+- Reuse the shared HTTP session, retry configuration,
+  and rate limiter.
+- Reject records without a usable description.
+- Skip missing detail pages returning HTTP 404 or 410.
+- Propagate other HTTP failures after configured retries.
+
+### Consequences
+
+Browser automation and additional dependencies are
+not required for the validated collection flow.
+
+The adapter depends on an observed public-facing API
+and HTML structures without a guaranteed stability
+contract.
+
+The initial scope excludes physical and hybrid
+hackathons, including potentially relevant Egyptian
+events.
+
+### Validation
+
+Final live validation on 2026-11-25:
+
+- Listing pages: 4
+- Discovered records: 27
+- Detail pages fetched: 23
+- Accepted opportunities: 20
+- Excluded opportunities: 6
+- Invalid records: 1
+- Duplicate records: 0
+- Missing detail pages: 0
+- Open opportunities: 12
+- Upcoming opportunities: 8
+- Approximate runtime: 104 seconds
+- Devpost unit tests: 82 passed
+- Full project tests: 580 passed
+
+The rejected invalid record lacked a usable description.
+The run completed without an unhandled HTTP failure.
+
+## ADR-037: Devpost Eligibility and Lifecycle Semantics
+
+**Status:** Accepted
+
+**Date:** 2026-11-25
+
+### Decision
+
+Country eligibility is evaluated conservatively using
+the available detail-page evidence.
+
+- Reject explicit exclusions of Egypt.
+- Reject country allowlists that do not include Egypt.
+- Reject restricted opportunities when the required
+  country list cannot be extracted.
+- Preserve eligibility text and extracted country lists.
+- Do not infer full Egyptian eligibility from the
+  absence of Egypt in an exclusion list.
+- Preserve age, student, team, and organization
+  restrictions as source evidence.
+
+Map open hackathons to active status subject to
+the shared deadline resolver.
+
+Map upcoming hackathons to unknown status while
+preserving the original source status.
+
+Store submission deadlines separately from the
+meaning of registration deadlines through raw metadata.
+
+Store prize information in raw_payload rather than
+salary fields.
+
+### Consequences
+
+Conservative geographic filtering may reduce recall.
+
+Official rules are linked but are not fully parsed.
+Individual eligibility and registration availability
+remain unverified.
+
+Upcoming opportunities are distinguishable through
+source_status_raw without changing the shared
+status enumeration.
+
+### Validation
+
+The final live run excluded:
+
+- QNX Global Hackathon: unavailable country blocklist.
+- Pico Space Program: Egypt absent from the extracted
+  country allowlist.
+
+The collection still reached its target of 20 unique
+opportunities after applying these restrictions.

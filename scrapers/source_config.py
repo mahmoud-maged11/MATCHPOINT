@@ -22,6 +22,11 @@ class SourceConfig:
 
 
 SOURCE_CONFIGS = {
+    "devpost": SourceConfig(
+        base_url="https://devpost.com",
+        enabled=True,
+    ),
+
     "wuzzuf": SourceConfig(
         base_url="https://wuzzuf.net",
         enabled=True,

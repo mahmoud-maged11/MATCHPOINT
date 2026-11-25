@@ -861,3 +861,64 @@ This milestone does not represent full production readiness.
 
 Production coverage, incremental collection, persistent
 storage and orchestration integration remain pending.
+
+## Devpost Collection Milestone
+
+**Status:** Implemented and live validated
+
+**Validation date:** 2026-11-25
+
+- [x] API investigation
+- [x] Pagination investigation
+- [x] HTML and JSON-LD investigation
+- [x] Mapper implementation
+- [x] Collector implementation
+- [x] Source configuration
+- [x] CLI integration
+- [x] Offline mapping validation
+- [x] Unit tests
+- [x] Initial live collection
+- [x] Country allowlist and blocklist handling
+- [x] Final live validation
+- [x] Architecture documentation
+- [x] Data contract documentation
+
+### Deferred improvements
+
+- [ ] Full official rules parsing.
+- [ ] Structured age and student eligibility.
+- [ ] Structured team-size restrictions.
+- [ ] Complete country-name normalization.
+- [ ] Support for Egyptian physical and hybrid events.
+- [ ] Verification of registration availability.
+- [ ] Separate normalized registration and submission dates.
+- [ ] Structured prize amount and currency extraction.
+- [ ] Validation of unusually distant submission deadlines.
+- [ ] Explicit stale-deadline checks for upcoming events.
+- [ ] Improved extraction for missing country lists.
+- [ ] Additional HTML layout fallback coverage.
+- [ ] Verification of API filter semantics and full coverage.
+- [ ] Incremental collection checkpoints.
+- [ ] Persistent invalid-record storage.
+- [ ] Cross-process rate limiting and retry pacing.
+- [ ] Automated source structure change detection.
+- [ ] Airflow scheduling and PostgreSQL integration.
+- [ ] Confirm production authorization scope and limits.
+
+### Known limitations
+
+The final sample contains 20 unique online hackathons.
+
+Country filtering reduces known geographic conflicts,
+but does not establish complete participant eligibility.
+
+The API and HTML structures may change without notice.
+
+Collection is bounded and does not guarantee exhaustive
+coverage.
+
+The final validation checked the collector output in
+memory. The earlier local JSON export predates the
+country eligibility fix and is not a final dataset.
+
+Database persistence and orchestration remain pending.
