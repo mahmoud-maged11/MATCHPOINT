@@ -51,13 +51,6 @@ SOURCE_CONFIGS = {
         base_url="https://www.bayt.com",
         enabled=True,
     ),
-    "tanqeeb": SourceConfig(
-        base_url="https://egypt.tanqeeb.com",
-        request_timeout=45,
-        request_delay=5,
-        max_retries=0,
-        enabled=False,
-),
 
 }
 
