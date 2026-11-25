@@ -9,6 +9,7 @@ from scrapers.sources.itida import ITIDAScraper
 from scrapers.sources.nti import NTIScraper
 from scrapers.sources.bayt import BaytScraper
 from scrapers.sources.devpost import DevpostScraper
+from scrapers.sources.un_volunteers import UNVolunteersScraper
 from pathlib import Path
 
 
@@ -27,6 +28,7 @@ def main():
             "egyincs",
             "itida",
             "nti",
+            "un_volunteers",
             "bayt",
             "devpost",
         ],    )
@@ -145,57 +147,108 @@ def main():
 
 
 
+
     elif args.source == "devpost":
 
         mode = args.mode or "api"
 
         if (
-            mode != "api"
-            or args.html_path is not None
-            or args.details_dir is not None
+
+                mode != "api"
+
+                or args.html_path is not None
+
+                or args.details_dir is not None
+
         ):
             parser.error("Devpost supports API collection only")
 
         scraper = DevpostScraper(
+
             max_jobs=args.max_jobs,
+
             max_pages=args.max_pages,
+
+        )
+
+
+    elif args.source == "un_volunteers":
+
+        mode = args.mode or "api"
+
+        if (
+
+                mode != "api"
+
+                or args.html_path is not None
+
+                or args.details_dir is not None
+
+        ):
+            parser.error("UN Volunteers supports API collection only")
+
+        scraper = UNVolunteersScraper(
+
+            max_jobs=args.max_jobs,
+
+            page_size=args.page_size,
+
+            max_pages=args.max_pages,
+
         )
 
     opportunities = scraper.run()
-    if args.output:
 
+    if args.output:
         args.output.parent.mkdir(
+
             parents=True,
+
             exist_ok=True
+
         )
 
         payload = [
+
             opportunity.model_dump(mode="json")
+
             for opportunity in opportunities
+
         ]
 
         args.output.write_text(
+
             json.dumps(
+
                 payload,
+
                 ensure_ascii=False,
+
                 indent=2
+
             ),
+
             encoding="utf-8"
+
         )
 
         print(f"Results saved to: {args.output}")
 
-
     print(f"\nTotal opportunities: {len(opportunities)}\n")
 
     for opportunity in opportunities:
-
         print(
+
             f"{opportunity.title} | "
+
             f"{opportunity.organization} | "
+
             f"{opportunity.location} | "
+
             f"{opportunity.opportunity_type} | "
+
             f"{opportunity.status}"
+
         )
 
     return opportunities

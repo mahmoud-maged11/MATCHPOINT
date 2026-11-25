@@ -26,6 +26,10 @@ SOURCE_CONFIGS = {
         base_url="https://devpost.com",
         enabled=True,
     ),
+    "un_volunteers": SourceConfig(
+        base_url="https://app.unv.org",
+        enabled=True
+    ),
 
     "wuzzuf": SourceConfig(
         base_url="https://wuzzuf.net",
