@@ -1,8 +1,8 @@
 # MATCHPOINT Pending Tasks
 
-**Data Contract Version:** 3.0.0 (proposed; pending team approval)
+**Data Contract Version:** 3.0.0 (approved; ADR-050)
 
-**Last Updated:** 2026-11-25
+**Last Updated:** 2026-11-26
 
 ## Priority Definitions
 
@@ -32,9 +32,9 @@
 - [x] Add salary_period and source_status_raw.
 - [x] Update architecture decisions for Wuzzuf API collection.
 - [x] Remove AMIDEAST from the runtime source model and verify the final eight-source scope.
-- [ ] Resolve contract versioning for the narrowed source enumeration with the team.
+- [x] Resolve contract versioning for the narrowed source enumeration through ADR-050.
 - [ ] Review updated documentation against implementation.
-- [ ] Obtain team approval for Data Contract v3.0.0 (proposed).
+- [x] Approve Data Contract v3.0.0 through the delegated technical decision owner (ADR-050).
 - [x] Commit and push Data Contract v2.1.0 to the feature branch.
 - [ ] Communicate updated contract to all team members.
 
@@ -420,7 +420,7 @@ as currently actionable opportunities without supporting evidence.
 - [x] Include salary period and original source status in hashing.
 - [ ] Define hash version compatibility before future schema changes.
 - [ ] Exclude future ingestion metadata from content hashing.
-- [ ] Define stable source listing identity.
+- [x] Define stable source listing identity (ADR-042).
 - [ ] Define source-specific URL identity rules.
 - [ ] Generate source_listing_id.
 - [ ] Track first collection timestamp.
@@ -428,8 +428,8 @@ as currently actionable opportunities without supporting evidence.
 - [ ] Detect new listings.
 - [ ] Detect unchanged listings.
 - [ ] Detect updated listings.
-- [ ] Define content version history.
-- [ ] Define raw observation retention policy.
+- [x] Define content version history (ADR-043).
+- [x] Define initial raw observation retention policy (ADR-043).
 - [ ] Implement idempotent ingestion.
 - [ ] Implement transaction handling.
 - [ ] Implement PostgreSQL storage module.
@@ -442,11 +442,12 @@ as currently actionable opportunities without supporting evidence.
 **Priority:** P1
 
 - [ ] Review proposed Data Contract v3.0.0.
-- [ ] Design Bronze, Silver, and Gold schemas.
-- [ ] Design physical source listing tables.
-- [ ] Design raw observation and content history tables.
-- [ ] Design invalid record storage.
-- [ ] Create database migrations.
+- [x] Design and implement the physical Bronze schema.
+- [ ] Design Silver and Gold transformation models.
+- [x] Design and implement physical source listing tables.
+- [x] Design and implement content history and observation ledger tables.
+- [x] Design and implement the physical invalid record table.
+- [x] Create and validate seven initial database migrations.
 - [ ] Initialize dbt project.
 - [ ] Configure dbt source definitions.
 - [ ] Implement staging models.
@@ -591,9 +592,9 @@ as currently actionable opportunities without supporting evidence.
 | B-001 | Wuzzuf direct HTML HTTP 403 | Mahmoud | Non-blocking for tested API collection |
 | B-002 | Python models incompatible with Data Contract v2.0.0 | Mahmoud | Resolved |
 | B-003 | Parser incompatible with new array fields | Mahmoud | Resolved |
-| B-004 | Physical Bronze ingestion schema not implemented | Momen | Open |
-| B-005 | Content history and retention policy not finalized | Mahmoud / Momen | Open |
-| B-006 | Storage integration awaiting agreed Bronze schema | Mahmoud / Momen | Open |
+| B-004 | Physical Bronze ingestion schema | Momen | Resolved: implemented, approved and locally tested |
+| B-005 | Initial content history and retention design | Mahmoud / Momen | Design approved; implementation and production retention review pending |
+| B-006 | PostgreSQL storage integration | Mahmoud / Momen | Schema dependency resolved; implementation pending |
 | B-007 | Opportunity lifecycle reconciliation not implemented | Mahmoud / Momen | Open |
 | B-008 | Persistent incremental checkpoints depend on ingestion design | Mahmoud / Momen / Andrew | Open |
 | B-009 | Production source authorization and rate policies require confirmation | Mahmoud | Open for production |
@@ -694,11 +695,11 @@ as currently actionable opportunities without supporting evidence.
 - [ ] Validate complete scheduled execution through Airflow.
 - [ ] Review remaining team component status before integration.
 
-### Blocked: Persistent Ingestion
+### Next Milestone: Persistent Ingestion
 
-- [ ] Approve physical Bronze schema with the Data Warehouse owner.
-- [ ] Approve source identity and uniqueness constraints.
-- [ ] Approve content version history and observation retention.
+- [x] Approve physical Bronze schema through ADR-050.
+- [x] Approve source identity and uniqueness constraints.
+- [x] Approve content version history and observation retention.
 - [ ] Implement PostgreSQL connection and transaction management.
 - [ ] Implement idempotent inserts and updates.
 - [ ] Persist collection runs and associate observations with run IDs.
@@ -993,3 +994,286 @@ Database persistence and orchestration remain pending.
 **Next milestone:** Complete documentation and contract version review, coordinate physical Bronze schema and ingestion design, and implement persistent ingestion before downstream integration.
 
 Bounded live validation and passing unit tests do not establish production authorization, exhaustive coverage, complete applicant eligibility, persistent ingestion or end-to-end pipeline readiness.
+
+---
+
+## Bronze Physical Schema Implementation Milestone
+
+**Date:** 2026-11-26
+
+**Branch:** feature/data-warehouse
+
+**Implementation:** Mahmoud
+
+**Warehouse component owner:** Momen
+
+**Status:** Approved, implemented and locally tested.
+
+**Architecture references:** ADR-041 through ADR-050.
+
+### Completed: Physical Database Infrastructure
+
+- [x] Integrate the collection branch into the warehouse branch.
+- [x] Verify PostgreSQL 16 container connectivity.
+- [x] Create Bronze schema.
+- [x] Create Silver schema.
+- [x] Create Gold schema.
+- [x] Create collection_runs table.
+- [x] Create source_listings table.
+- [x] Create source_listing_history table.
+- [x] Create ingestion_observations table.
+- [x] Create invalid_records table.
+- [x] Create source_checkpoints table.
+- [x] Implement primary key constraints.
+- [x] Implement foreign key constraints.
+- [x] Implement source identity uniqueness constraints.
+- [x] Implement content history uniqueness constraints.
+- [x] Implement observation ledger uniqueness constraints.
+- [x] Implement invalid record uniqueness constraints.
+- [x] Implement checkpoint uniqueness constraints.
+- [x] Implement physical check constraints.
+- [x] Create initial database indexes.
+- [x] Create seven SQL migration files.
+- [x] Approve Data Contract v3.0.0.
+- [x] Approve initial Bronze physical design.
+
+### Completed: Database Validation
+
+- [x] Verify all six Bronze tables.
+- [x] Verify all 96 Bronze columns.
+- [x] Implement positive SQL test script.
+- [x] Implement negative SQL test script.
+- [x] Pass seven positive SQL checks.
+- [x] Pass sixteen negative SQL checks.
+- [x] Verify rollback of positive test data.
+- [x] Create an isolated migration test database.
+- [x] Reapply all seven migrations from scratch.
+- [x] Verify reconstructed schemas and tables.
+- [x] Verify reconstructed column counts.
+- [x] Repeat all 23 SQL checks successfully.
+- [x] Remove the temporary test database.
+- [x] Verify that the primary database remains available.
+
+### Validation Summary
+
+| Metric | Result |
+|---|---:|
+| Project schemas | 3 |
+| Bronze tables | 6 |
+| Bronze columns | 96 |
+| SQL migrations | 7 |
+| SQL test files | 2 |
+| Positive checks | 7 passed |
+| Negative checks | 16 passed |
+| Distinct SQL checks | 23 passed |
+| Successful executions across both databases | 46 |
+| Previous collection-layer Python regression baseline | 665 passed |
+
+The Python regression baseline was established on
+2026-11-25 and is reported separately from SQL checks.
+
+SQL checks validate selected physical constraints.
+They do not establish complete ingestion correctness.
+
+### Next: PostgreSQL Storage Module
+
+**Owner:** Mahmoud
+
+**Priority:** P0
+
+- [ ] Select and configure the PostgreSQL Python driver.
+- [ ] Verify driver compatibility with the local Python version.
+- [ ] Implement database connection configuration.
+- [ ] Implement connection and transaction management.
+- [ ] Introduce the HASH_VERSION constant.
+- [ ] Define deterministic observation hashing.
+- [ ] Define deterministic rejection hashing.
+- [ ] Implement source identity generation.
+- [ ] Reject missing or unusable source identifiers.
+- [ ] Validate source consistency between listings and runs.
+- [ ] Implement persistent collection run creation.
+- [ ] Implement collection run finalization.
+- [ ] Implement collection run failure handling.
+- [ ] Define persistent run counter semantics.
+- [ ] Implement new listing insertion.
+- [ ] Implement initial content history creation.
+- [ ] Implement changed listing detection.
+- [ ] Implement content version increments.
+- [ ] Implement unchanged listing handling.
+- [ ] Refresh latest permitted raw payloads.
+- [ ] Preserve original first_seen_at timestamps.
+- [ ] Track collected_at and last_seen_at.
+- [ ] Associate listings with collection run IDs.
+- [ ] Implement observation ledger writes.
+- [ ] Implement identical retry detection.
+- [ ] Implement conflicting retry detection.
+- [ ] Implement stale observation handling.
+- [ ] Define equal-timestamp observation conflict rules.
+- [ ] Implement equal-timestamp observation handling.
+- [ ] Prevent duplicate processing counters.
+- [ ] Implement row-level locking.
+- [ ] Handle concurrent initial listing inserts.
+- [ ] Implement atomic current/history/ledger writes.
+- [ ] Integrate persistent invalid record storage.
+- [ ] Sanitize retained rejection diagnostics.
+- [ ] Distinguish record errors from infrastructure failures.
+- [ ] Integrate storage with the shared collection CLI.
+- [ ] Preserve existing JSON export functionality.
+
+### Next: Persistent Ingestion Testing
+
+**Owners:** Mahmoud and Momen
+
+**Priority:** P0
+
+- [ ] Test PostgreSQL connectivity from Python.
+- [ ] Test new listing insertion.
+- [ ] Test unchanged listing processing.
+- [ ] Test changed listing processing.
+- [ ] Test A-to-B-to-A content version history.
+- [ ] Test identical retries within the same run.
+- [ ] Test retries after newer runs have completed.
+- [ ] Test conflicting observations within the same run.
+- [ ] Test stale observations.
+- [ ] Test equal-timestamp observations.
+- [ ] Test missing source identifiers.
+- [ ] Test source/run consistency.
+- [ ] Test invalid record persistence.
+- [ ] Test duplicate rejection prevention.
+- [ ] Test transaction rollback.
+- [ ] Test concurrent ingestion.
+- [ ] Test partial failure and recovery.
+- [ ] Test persistent run counters.
+- [ ] Test raw payload refresh without content changes.
+- [ ] Validate ingestion using the 40-record handover sample.
+- [ ] Validate all eight source-to-Bronze integrations.
+- [ ] Run the complete Python regression suite.
+- [ ] Strengthen SQL tests to identify individual constraints.
+
+### Next: Lifecycle and Transformation
+
+**Owners:** Mahmoud and Momen
+
+**Priority:** P1
+
+- [ ] Initialize dbt project.
+- [ ] Configure Bronze source definitions.
+- [ ] Implement Silver staging models.
+- [ ] Normalize organizations, locations and skills.
+- [ ] Implement effective opportunity status.
+- [ ] Validate reliable deadline expiration.
+- [ ] Handle date-only and uncertain deadlines.
+- [ ] Preserve explicit closure and expiration evidence.
+- [ ] Prevent closure inference from bounded-run absence.
+- [ ] Validate reopened opportunities.
+- [ ] Define lifecycle revalidation schedules.
+- [ ] Define time-dependent transformation freshness.
+- [ ] Implement canonical opportunity identities.
+- [ ] Implement evidence-based cross-source deduplication.
+- [ ] Implement Gold facts, dimensions and bridge tables.
+- [ ] Implement dbt data quality tests.
+
+### Deferred: Incremental Collection
+
+**Owners:** Mahmoud, Momen and Andrew
+
+- [x] Implement physical source_checkpoints table.
+- [ ] Define source-specific incremental strategies.
+- [ ] Validate supported checkpoint representations.
+- [ ] Implement independent Egyincs endpoint scopes.
+- [ ] Implement checkpoint source/run/scope validation.
+- [ ] Implement successful checkpoint advancement.
+- [ ] Commit run finalization and checkpoint updates atomically.
+- [ ] Preserve checkpoints after failed or partial runs.
+- [ ] Implement overlapping collection windows.
+- [ ] Handle equal timestamp boundaries.
+- [ ] Implement stable pagination and recovery.
+- [ ] Test incremental collection before activation.
+
+### Deferred: Hash Version Migration
+
+**Owners:** Mahmoud and Momen
+
+**Architecture reference:** ADR-045
+
+- [x] Define initial hash version compatibility.
+- [x] Enforce hash_version = 1 in the initial schema.
+- [x] Document future hash migration design.
+- [ ] Implement hash_migrations audit table.
+- [ ] Implement reconciliation_observations table.
+- [ ] Implement ingestion_state singleton table.
+- [ ] Add needs_reconciliation listing metadata.
+- [ ] Add reconciliation_reason listing metadata.
+- [ ] Add reconciliation_required_at listing metadata.
+- [ ] Implement active hash version management.
+- [ ] Implement current listing rehashing.
+- [ ] Preserve historical hash versions.
+- [ ] Prevent artificial content history creation.
+- [ ] Prevent artificial collection run creation.
+- [ ] Implement missing-input reconciliation.
+- [ ] Preserve observations during reconciliation.
+- [ ] Implement chronological observation replay.
+- [ ] Implement reconciliation resolution auditing.
+- [ ] Implement reconciliation retry conflict detection.
+- [ ] Implement shared run coordination lock 710002.
+- [ ] Implement shared write coordination lock 710001.
+- [ ] Implement exclusive migration coordination.
+- [ ] Enforce advisory lock acquisition order.
+- [ ] Implement pinned connection management.
+- [ ] Handle coordination connection loss.
+- [ ] Implement abandoned migration recovery.
+- [ ] Test migration rollback and audit persistence.
+- [ ] Test hash migration concurrency.
+- [ ] Test reconciliation and recovery.
+
+### Deferred: Production Database Readiness
+
+- [ ] Implement persistent migration execution tracking.
+- [ ] Define database schema upgrade procedures.
+- [ ] Review database roles and permissions.
+- [ ] Review historical record write protection.
+- [ ] Define raw payload retention periods.
+- [ ] Define invalid record retention periods.
+- [ ] Implement approved retention and purge procedures.
+- [ ] Review source-specific raw-only content changes.
+- [ ] Review payload and free-text privacy.
+- [ ] Implement controlled invalid record reprocessing.
+- [ ] Validate persistent Docker volume behavior.
+- [ ] Implement backup and restore procedures.
+- [ ] Review indexes using representative query workloads.
+- [ ] Configure automated database integration tests.
+- [ ] Configure database monitoring.
+
+### Documentation and Repository Integration
+
+- [x] Document Bronze architecture decisions.
+- [x] Record technical design approval in ADR-050.
+- [ ] Synchronize Data Contract documentation.
+- [ ] Synchronize README instructions.
+- [ ] Synchronize final project documentation.
+- [ ] Review staged migration and test files.
+- [ ] Commit Bronze implementation milestone.
+- [ ] Push the warehouse feature branch.
+- [ ] Communicate the approved design to team members.
+- [ ] Coordinate downstream component integration.
+
+### Current Milestone Boundaries
+
+The physical Bronze schema is implemented, approved
+and locally tested.
+
+Persistent Python ingestion is not yet implemented.
+
+Silver and Gold schemas exist, but their transformation
+models and analytical tables remain pending.
+
+Incremental collection is not activated.
+
+Future hash migration and reconciliation structures
+are intentionally deferred.
+
+Production authorization, exhaustive source coverage,
+privacy review and end-to-end pipeline readiness
+remain separate requirements.
+
+Existing team component ownership remains unchanged.

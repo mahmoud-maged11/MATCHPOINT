@@ -1267,3 +1267,774 @@ Removing amideast from SourceName narrows the accepted enumeration and is a brea
 ### Consequences
 
 The next milestone is persistent ingestion design and integration with the Data Warehouse owner, including identity, raw observation retention, content history, transactions, invalid records, checkpoints and lifecycle. Production authorization, coverage, orchestration and end-to-end validation remain pending. Historical milestones retain their original test counts and scope context.
+
+---
+
+## ADR-041: Physical Bronze Schema
+
+**Date:** 2026-11-26
+
+**Status:** Approved; implemented and locally tested.
+
+### Decision
+
+Use PostgreSQL 16 as the persistent storage platform
+for the initial Medallion Architecture.
+
+Create three schemas:
+
+- bronze
+- silver
+- gold
+
+The initial Bronze schema contains six tables:
+
+| Table | Columns |
+|---|---:|
+| collection_runs | 18 |
+| source_listings | 42 |
+| source_listing_history | 10 |
+| ingestion_observations | 6 |
+| invalid_records | 12 |
+| source_checkpoints | 8 |
+
+The schema contains 96 columns across six tables.
+
+Use explicit SQL migrations under database/migrations:
+
+- 001_create_schemas.sql
+- 002_create_collection_runs.sql
+- 003_create_source_listings.sql
+- 004_create_source_listing_history.sql
+- 005_create_ingestion_observations.sql
+- 006_create_invalid_records.sql
+- 007_create_source_checkpoints.sql
+
+Use primary keys, foreign keys, unique constraints,
+check constraints and indexes to enforce physical
+integrity and support expected access patterns.
+
+Use TIMESTAMPTZ for observation and storage timestamps,
+NUMERIC for salary and experience ranges, and JSONB
+for structured arrays and retained payloads.
+
+### Consequences
+
+The physical Bronze schema is implemented and approved
+by the delegated technical decision owner.
+
+Silver and Gold schemas exist but their transformation
+models and analytical tables remain unimplemented.
+
+Application-level validation, transaction management,
+source consistency and ingestion behavior remain pending.
+
+Team communication and production readiness validation
+remain pending.
+
+A persistent migration tracking mechanism remains
+pending. The current migration sequence is intended
+for initial database construction.
+
+
+## ADR-042: Source Listing Identity
+
+**Date:** 2026-11-26
+
+**Status:** Approved; physical constraints implemented; ingestion integration pending.
+
+### Decision
+
+Generate a stable internal UUID for each source listing.
+
+Use the following identity representation:
+
+source_identity_key = "id:" + source_opportunity_id
+
+Enforce uniqueness using:
+
+UNIQUE (source_name, source_identity_key)
+
+Require a non-empty source_opportunity_id for the
+initial persistent ingestion implementation.
+
+All eight current source adapters provide source IDs
+for accepted records.
+
+Do not use titles, descriptions, organization names
+or content hashes as source listing identifiers.
+
+Preserve distinct source identities even when their
+normalized content is similar or identical.
+
+### Consequences
+
+The physical Bronze schema is stricter than the
+Data Contract, where source_opportunity_id remains
+optional at the collection model level.
+
+Records without a usable source ID must be rejected
+by the initial ingestion implementation.
+
+URL-based fallback identity, identity aliases and
+identity promotion are deferred.
+
+Source-specific identity stability and URL changes
+require further validation.
+
+Cross-source canonical identity and semantic
+deduplication remain Silver-layer responsibilities.
+
+
+## ADR-043: Content History and Raw Retention
+
+**Date:** 2026-11-26
+
+**Status:** Approved; physical tables implemented; retention and versioning behavior pending.
+
+### Decision
+
+Maintain the latest accepted listing in source_listings.
+
+Maintain full standardized snapshots in
+source_listing_history.
+
+Create the first history version when a listing is
+initially inserted.
+
+Create another history version only when normalized
+content changes.
+
+Increment content_version for each accepted content
+change.
+
+Enforce uniqueness of:
+
+- source_listing_id and content_version
+- source_listing_id and collection_run_id
+
+Do not enforce uniqueness of content_hash.
+
+A listing may return to an earlier content state.
+An A-to-B-to-A sequence must preserve three versions.
+
+Retain the latest permitted raw_payload in the
+current listing, including newer unchanged observations.
+
+Retain the permitted raw payload associated with each
+historical content version.
+
+Do not retain a complete raw snapshot for every
+unchanged observation in the initial implementation.
+
+For newer unchanged observations:
+
+- Refresh collected_at.
+- Refresh last_seen_at.
+- Refresh last_collection_run_id.
+- Refresh the permitted raw_payload.
+- Preserve first_seen_at.
+- Preserve content_version.
+- Preserve content_hash.
+
+### Consequences
+
+Raw-only changes do not automatically create new
+content versions under the current hashing policy.
+
+Previous raw-only observations may no longer be
+available after the current payload is replaced.
+
+Meaningful source-specific raw metadata changes
+require further review.
+
+Automatic retention periods, purging, privacy review
+and historical write protection remain pending.
+
+History and current listing changes must be committed
+atomically by the ingestion implementation.
+
+
+## ADR-044: Idempotency and Transaction Management
+
+**Date:** 2026-11-26
+
+**Status:** Approved; observation ledger implemented; ingestion behavior pending.
+
+### Decision
+
+Use ingestion_observations as a lightweight ledger
+of processed source observations.
+
+Use a composite primary key consisting of:
+
+- source_listing_id
+- collection_run_id
+
+Allow one recorded observation outcome per source
+listing within a logical collection run.
+
+Distinguish the following ingestion outcomes:
+
+- inserted
+- updated
+- unchanged
+- stale
+- conflicted
+- duplicate retry
+- invalid
+
+Only inserted, updated, unchanged, stale and
+conflicted are stored as ledger outcome values.
+
+Duplicate retries do not create additional ledger rows.
+
+Invalid records and additional conflicting attempts
+are retained separately in invalid_records.
+
+Use a dedicated observation hash to distinguish
+identical retries from conflicting observations.
+
+Include the original observation timestamp, source
+identity and retained payload in observation hashing.
+
+Normalize unordered standardized arrays consistently.
+
+The unordered standardized arrays are:
+
+- work_modes
+- employment_types
+- categories
+- required_skills
+
+Preserve raw array ordering.
+
+Retries must reuse the original observation timestamp
+and payload rather than generating a new observation.
+
+### Transaction rules
+
+- New listings create a current row, initial history
+  version and observation ledger entry atomically.
+- Changed listings update the current row and create
+  a history version and ledger entry atomically.
+- Newer unchanged observations refresh observation
+  metadata and the latest permitted raw payload without
+  incrementing content_version.
+- Older observations must not overwrite newer state
+  or create retroactive history versions.
+- Equal observation timestamps with different content
+  must be treated as conflicts.
+- Identical retries must not duplicate writes or
+  increment processing counters.
+- Conflicting retries must preserve the original
+  observation ledger entry.
+- A retry of an earlier processed observation must
+  remain idempotent even after newer runs are processed.
+
+Use row-level locking for existing listings through
+SELECT FOR UPDATE.
+
+Handle concurrent initial inserts through the source
+identity uniqueness constraint and conflict-aware
+insertion followed by a locked reread.
+
+### Remaining work
+
+Implement and test observation hashing, counter
+semantics, transaction boundaries, concurrency,
+source/run consistency and failure recovery.
+
+Define the final handling of equal-timestamp
+observations with identical normalized content
+but different observation payloads.
+
+The database constraints alone do not guarantee
+complete ingestion idempotency.
+
+
+## ADR-045: Hash Versioning and Migration
+
+**Date:** 2026-11-26
+
+**Status:** Approved; version 1 physical constraints implemented; future migration implementation deferred.
+
+### Decision
+
+The initial Bronze schema supports hash_version = 1.
+
+Continue using deterministic SHA-256 content hashing.
+
+Introduce an explicit HASH_VERSION constant in the
+Python hashing implementation.
+
+Keep content_version separate from hash_version.
+
+A future hashing algorithm or normalization change
+must not automatically create a new content version.
+
+### Future migration design
+
+Recalculate current listing hashes when sufficient
+original information is available.
+
+Preserve historical hashes and their original
+hash versions.
+
+Do not create artificial collection runs or history
+versions during hash migration.
+
+Preserve:
+
+- first_seen_at
+- last_seen_at
+- collected_at
+- created_at
+- last_collection_run_id
+- content_version
+- retained raw payload
+
+Update only the current hash, hash version and
+storage update timestamp during a successful rehash.
+
+When required information is unavailable, flag the
+listing for reconciliation rather than inventing
+missing values.
+
+Preserve the previous hash and hash version until
+reconciliation is possible.
+
+Preserve subsequent observations separately until
+reconciliation can be completed.
+
+Real subsequent sightings may refresh last_seen_at
+and last_collection_run_id while reconciliation
+remains pending.
+
+Any future schema migration must reconcile this
+behavior with the initial Bronze timestamp constraints.
+
+### Deferred physical structures
+
+- hash_migrations
+- reconciliation_observations
+- ingestion_state
+
+Deferred listing metadata:
+
+- needs_reconciliation
+- reconciliation_reason
+- reconciliation_required_at
+
+### Future hash migration audit
+
+The proposed hash_migrations table must retain:
+
+- migration_id
+- from_hash_version
+- to_hash_version
+- status
+- started_at
+- completed_at
+- initiated_by
+- records_scanned
+- records_rehashed
+- records_needing_reconciliation
+- records_failed
+- code_revision
+- error_message
+- notes
+
+Supported migration statuses:
+
+- running
+- completed
+- completed_with_reconciliation
+- failed
+- aborted
+
+Create the migration attempt independently before
+starting the migration transaction.
+
+Commit successful migration changes and the active
+hash version pointer atomically.
+
+Record failed migration attempts separately after
+rolling back unsuccessful migration changes.
+
+### Future reconciliation observations
+
+The proposed reconciliation_observations table
+must retain:
+
+- observation_id
+- source_listing_id
+- collection_run_id
+- observed_at
+- standardized_payload
+- candidate_content_hash
+- hash_version
+- contract_version
+- reconciliation_reason
+- resolution_status
+- resolved_at
+- resolution_notes
+- discard_reason
+
+Resolution statuses:
+
+- pending
+- resolved
+- discarded
+
+Require a non-empty discard reason for discarded
+observations.
+
+Enforce one reconciliation observation per source
+listing and logical collection run.
+
+Identical retries must be no-ops.
+
+Different observations using the same listing and
+run identity must be treated as conflicts.
+
+Preserve original observation timestamps and
+payloads during retries.
+
+Exclude resolution metadata from observation
+equality comparisons.
+
+Replay eligible observations chronologically during
+reconciliation.
+
+Create history versions only for actual content
+changes supported by original observation evidence.
+
+Do not create artificial collection runs.
+
+Commit reconciliation changes atomically.
+
+### Future ingestion state
+
+The proposed ingestion_state table must retain:
+
+- state_id
+- active_hash_version
+- updated_at
+- last_hash_migration_id
+
+Use a singleton state row with state_id = 1.
+
+### Future concurrency strategy
+
+Use cooperative PostgreSQL advisory locks.
+
+Reserve lock identifiers:
+
+- 710002: collection-run coordination
+- 710001: ingestion-write coordination
+
+Normal collection runs acquire a shared session-level
+run coordination lock before reading the active
+hash version.
+
+Normal ingestion transactions acquire a shared
+transaction-level write coordination lock.
+
+Hash migration requires an exclusive session-level
+run coordination lock followed by an exclusive
+transaction-level write coordination lock.
+
+Acquire run coordination before write coordination.
+
+Session-level locks require a pinned physical
+database connection.
+
+Stop processing if the coordination connection
+is lost.
+
+Recover abandoned migration attempts only after
+exclusive run coordination has been established.
+
+Elapsed time alone is not sufficient evidence
+that a migration attempt has been abandoned.
+
+### Consequences
+
+The initial schema rejects unsupported hash versions.
+
+The migration engine, reconciliation workflow,
+coordination locks and future tables are not
+implemented in the initial Bronze milestone.
+
+
+## ADR-046: Persistent Invalid Records
+
+**Date:** 2026-11-26
+
+**Status:** Approved; physical table implemented; persistent error handling pending.
+
+### Decision
+
+Retain permitted rejected records in invalid_records.
+
+Associate each rejection with a collection run.
+
+Support the following failure stages:
+
+- extraction
+- mapping
+- validation
+- identity
+- ingestion
+
+Allow missing source identifiers and source URLs.
+
+Store error codes, error messages, structured
+diagnostics and permitted rejected payloads.
+
+Use a dedicated rejection_hash to prevent duplicate
+rejection records within the same logical run.
+
+Enforce uniqueness of:
+
+collection_run_id and rejection_hash
+
+### Consequences
+
+The rejection payload may contain malformed or
+non-object JSON values.
+
+Sensitive information must be removed before
+persistent storage.
+
+Not every database failure is a record-level
+validation error.
+
+Infrastructure and transaction failures must be
+handled separately.
+
+The rejection hash definition, persistent error
+integration and controlled reprocessing remain
+pending.
+
+
+## ADR-047: Lifecycle Reconciliation
+
+**Date:** 2026-11-26
+
+**Status:** Approved; transformation implementation pending.
+
+### Decision
+
+Preserve observed status and source_status_raw
+in Bronze.
+
+Derive effective opportunity status downstream
+using source evidence and reliable deadline semantics.
+
+Explicit closed or expired evidence takes precedence.
+
+An active or unknown listing may become effectively
+expired when a reliable deadline has passed.
+
+A future deadline alone does not establish that
+an unknown opportunity is active.
+
+Apply conservative handling of date-only,
+relative and uncertain deadline values.
+
+Never infer closure solely from absence in a
+bounded collection run.
+
+A reopened listing retains its existing source
+identity and may create a new content version
+when observed content changes.
+
+Passage of time alone must not create a Bronze
+content version.
+
+### Remaining work
+
+Implement effective status derivation in Silver.
+
+Define source-specific revalidation schedules.
+
+Review transformation freshness and materialization
+strategies for time-dependent effective status.
+
+Validate reopening, expiration and conflicting
+lifecycle evidence.
+
+
+## ADR-048: Incremental Checkpoints
+
+**Date:** 2026-11-26
+
+**Status:** Approved; physical table implemented; incremental collection deferred.
+
+### Decision
+
+Store checkpoints per source and collection scope.
+
+Enforce uniqueness of:
+
+source_name and collection_scope
+
+Support independent collection scopes, including
+Egyincs jobs and lp_course endpoints.
+
+Allow structured checkpoint values using JSONB.
+
+Supported checkpoint representations:
+
+- timestamp
+- cursor
+- numeric_id
+- page_number
+- composite
+
+Associate each checkpoint with a successful
+collection run.
+
+Advance checkpoints only after successful
+persistent processing of the covered records.
+
+Finalize the successful run and checkpoint update
+within the same transaction.
+
+Failed or partial runs must not advance the
+previous successful checkpoint.
+
+### Consequences
+
+All eight current adapters continue to use bounded
+collection until incremental semantics are verified.
+
+A supported checkpoint representation does not
+establish that a particular source supports it.
+
+Timestamp overlap, equal timestamp handling,
+stable pagination and partial-run recovery
+remain pending.
+
+The application must validate checkpoint values,
+source/scope consistency and successful run status.
+
+
+## ADR-049: Database Integrity and Reproducibility Testing
+
+**Date:** 2026-11-26
+
+**Status:** Implemented and locally verified.
+
+### Validation
+
+Successfully applied seven SQL migrations to
+the primary matchpoint database.
+
+Verified three project schemas and six Bronze
+tables containing 96 columns.
+
+Created two SQL test files:
+
+- tests/sql/test_bronze_valid_records.sql
+- tests/sql/test_bronze_invalid_records.sql
+
+Test results:
+
+- Positive checks: 7 passed.
+- Negative checks: 16 passed.
+- Total distinct checks: 23 passed.
+
+Created an isolated temporary PostgreSQL database
+named matchpoint_migration_test.
+
+Reapplied all seven migrations in filename order.
+
+Verified the reconstructed schemas, tables and
+column counts.
+
+Executed both SQL test files successfully against
+the reconstructed database.
+
+Total successful check executions across both
+databases: 46.
+
+Both test scripts use transaction rollback.
+
+Verified that the primary Bronze tables contained
+zero records after the positive test.
+
+Removed the temporary database after validation
+and confirmed that all six primary Bronze tables
+remained available.
+
+### Limitations
+
+These tests validate the physical schema and
+selected database constraints.
+
+They do not establish complete Data Contract
+enforcement, application-level idempotency,
+concurrent ingestion safety, hash migration,
+lifecycle reconciliation or checkpoint recovery.
+
+The negative tests verify expected violation
+categories but do not independently identify
+every individual constraint.
+
+The existing collection-layer regression baseline
+remains 665 passing Python tests as of 2026-11-25.
+
+SQL checks are reported separately from Python tests.
+
+Persistent ingestion and end-to-end integration
+testing remain pending.
+
+
+## ADR-050: Technical Design Approval
+
+**Date:** 2026-11-26
+
+**Status:** Accepted.
+
+### Decision
+
+The delegated technical decision owner, Mahmoud,
+approves:
+
+- Data Contract v3.0.0.
+- Physical Bronze schema.
+- Source listing identity and uniqueness rules.
+- Content history and raw retention design.
+- Idempotency and transaction design.
+- Hash versioning and future migration design.
+- Persistent invalid record design.
+- Lifecycle reconciliation policy.
+- Incremental checkpoint design.
+
+The approved design is the implementation baseline
+for persistent ingestion and downstream integration.
+
+This decision supersedes earlier pending approval
+statements concerning the approved contract and
+Bronze design.
+
+### Consequences
+
+Technical design approval is no longer a blocker
+for PostgreSQL ingestion implementation.
+
+Approval does not imply that pending functionality
+has been implemented or tested.
+
+Team communication, integration testing, production
+authorization, privacy review and operational
+readiness remain separate requirements.
+
+Existing team component responsibilities remain
+unchanged.
+
+Future breaking contract changes must follow the
+established contract versioning policy.

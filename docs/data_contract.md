@@ -1,8 +1,8 @@
 # MATCHPOINT Data Contract
 
-**Version:** 3.0.0 (proposed; pending team approval)
+**Version:** 3.0.0 (approved; ADR-050)
 
-**Status:** Collection models and all eight source adapters implemented and bounded-live validated; proposed contract revision pending team review and warehouse integration.
+**Status:** Approved contract. All eight source adapters implemented and bounded-live validated. Physical Bronze schema implemented and locally tested. Persistent ingestion and downstream integration remain pending.
 
 **Owners:** Data Collection & Data Warehouse Teams
 
@@ -22,7 +22,7 @@ The architecture must preserve original source data, support multiple opportunit
 |---|---|---|
 | source_listing_id | UUID | Yes, generated during ingestion |
 | source_name | VARCHAR | Yes |
-| source_opportunity_id | TEXT | No |
+| source_opportunity_id | TEXT | Optional in collection model; required for initial Bronze ingestion |
 | source_url | TEXT | Yes |
 
 ### 2.2 Opportunity Information
@@ -653,7 +653,7 @@ Each individual source listing must have a stable source_listing_id.
 
 When a reliable source_opportunity_id is available, the combination of source_name and source_opportunity_id identifies the listing.
 
-When a source identifier is unavailable, a documented source-specific URL identity strategy must be used.
+For initial Bronze ingestion, a non-empty source_opportunity_id is mandatory. Records without a usable source identifier must be rejected. URL-based fallback identity and identity promotion are deferred under ADR-042.
 
 Original source URLs must be preserved.
 
@@ -663,7 +663,7 @@ SHA-256 must be used for standardized content hashing.
 
 Content serialization must be deterministic.
 
-Collection timestamps, ingestion metadata, source identifiers, and volatile raw payload fields must not affect the content hash.
+Collection timestamps, ingestion metadata, source identifiers, source URLs and the entire raw_payload must not affect the initial content hash.
 
 Relative date labels and derived approximate timestamps must not trigger false content changes.
 
@@ -675,13 +675,13 @@ For example, 5000 and 5000.00 represent the same numeric value.
 
 Salary period and source status participate in standardized content hashing.
 
-Changes to hashing rules must be coordinated before persistent ingestion.
+The initial Bronze schema supports hash_version = 1. Future hashing changes require an explicit migration and reconciliation strategy under ADR-045.
 
-Effective status changes may affect the content hash.
+Observed status changes participate in content hashing. Downstream effective status changes caused solely by passage of time must not create Bronze content versions.
 
 The source listing identity and content hash must be used together to detect content changes.
 
-Unchanged listings must still have their last_seen_at updated.
+Newer unchanged observations must refresh collected_at, last_seen_at, last_collection_run_id and the latest permitted raw_payload without incrementing content_version. Stale observations and identical retries must not overwrite newer state.
 
 ### 6.3 Cross-source Deduplication
 
@@ -725,6 +725,210 @@ Responsibilities include:
 - Ingestion error tracking
 
 Invalid records must be retained separately for investigation rather than silently discarded.
+
+#### 7.1.1 Physical Bronze Implementation
+
+The initial PostgreSQL 16 implementation contains
+six Bronze tables:
+
+| Table | Purpose | Columns |
+|---|---|---:|
+| collection_runs | Collection execution metadata and counters | 18 |
+| source_listings | Latest accepted standardized source records | 42 |
+| source_listing_history | Content-version snapshots | 10 |
+| ingestion_observations | Observation identity and processing outcomes | 6 |
+| invalid_records | Rejected records and permitted diagnostics | 12 |
+| source_checkpoints | Persistent incremental collection state | 8 |
+
+Seven SQL migrations create the three project schemas
+and six Bronze tables.
+
+The physical schema is implemented and locally tested.
+
+Persistent ingestion behavior remains pending.
+
+#### 7.1.2 Collection Model and Storage Fields
+
+The standardized Data Contract defines 35 fields.
+
+The Pydantic Opportunity collection model contains
+32 fields.
+
+The following three contract fields are generated
+or managed during ingestion:
+
+- source_listing_id
+- content_hash
+- last_seen_at
+
+The physical source_listings table adds seven
+storage-specific fields:
+
+| Field | Data Type | Purpose |
+|---|---|---|
+| source_identity_key | TEXT | Deterministic source identity key |
+| first_seen_at | TIMESTAMPTZ | Initial accepted observation timestamp |
+| created_at | TIMESTAMPTZ | Database row creation timestamp |
+| updated_at | TIMESTAMPTZ | Database row modification timestamp |
+| hash_version | INTEGER | Content hashing algorithm version |
+| content_version | INTEGER | Current content revision number |
+| last_collection_run_id | UUID | Most recent accepted observation run |
+
+These seven fields are managed by persistent
+ingestion and database storage.
+
+They are not required fields in the Pydantic
+collection model.
+
+The physical source_listings table therefore
+contains 42 columns.
+
+#### 7.1.3 Storage Admission and Identity
+
+Initial Bronze ingestion requires a valid,
+non-empty source_opportunity_id.
+
+Generate the source identity key as:
+
+source_identity_key = "id:" + source_opportunity_id
+
+Enforce uniqueness of source_name and
+source_identity_key.
+
+Generate a stable UUID for source_listing_id
+when a new source identity is inserted.
+
+Preserve the UUID across subsequent observations
+and content changes.
+
+Source IDs remain optional at the collection model
+level, but records without usable IDs cannot enter
+the initial source_listings table.
+
+The URL fallback strategy remains deferred.
+
+Detailed source identity rules are documented
+in ADR-042.
+
+#### 7.1.4 Content History and Observation Semantics
+
+Create an initial content history snapshot for
+each new source listing.
+
+Create subsequent snapshots only when standardized
+content changes.
+
+Keep content_version independent of hash_version.
+
+A repeated historical content hash does not imply
+that the new content revision is a duplicate.
+
+Maintain one observation ledger entry per source
+listing and logical collection run.
+
+Use a dedicated observation hash for retry detection.
+
+Identical retries must not duplicate writes.
+
+Stale observations must not overwrite newer state.
+
+Conflicting observations must preserve the original
+accepted observation and retain permitted diagnostics.
+
+Current listing, history and observation ledger
+changes must be committed atomically.
+
+Retain the latest permitted raw payload in the
+current listing and the permitted payload associated
+with each historical content version.
+
+The initial design does not retain a full raw
+snapshot for every unchanged observation.
+
+Detailed rules are documented in ADR-043 and ADR-044.
+
+#### 7.1.5 Hash Version Compatibility
+
+The initial physical schema supports hash_version = 1.
+
+Future hashing changes must preserve historical
+hashes and original hash versions.
+
+A hashing algorithm change must not automatically
+create a new content version.
+
+Future hash migration and reconciliation structures
+are deferred under ADR-045.
+
+#### 7.1.6 Invalid Records and Checkpoints
+
+Invalid records are stored separately from accepted
+source listings and associated with collection runs.
+
+A deterministic rejection hash prevents duplicate
+rejections within the same logical run.
+
+Sensitive information must be removed before
+persistent rejection storage.
+
+Checkpoints are maintained per source and
+collection scope.
+
+Checkpoint advancement requires successful
+persistent processing of the covered records.
+
+Failed or partial runs must not advance the
+previous successful checkpoint.
+
+Incremental collection is not activated in
+the initial implementation.
+
+Detailed rules are documented in ADR-046 and ADR-048.
+
+#### 7.1.7 Lifecycle Boundaries
+
+Bronze preserves the opportunity status evaluated
+at observation time.
+
+Silver derives the downstream effective status
+using reliable source and deadline evidence.
+
+Passage of time alone must not create a new
+Bronze content version.
+
+Absence from a bounded collection run must not
+be interpreted as closure or expiration.
+
+Lifecycle reconciliation remains pending
+under ADR-047.
+
+#### 7.1.8 Validation and Implementation Status
+
+Physical database validation completed on 2026-11-26:
+
+- Three project schemas created.
+- Six Bronze tables created.
+- 96 Bronze columns verified.
+- Seven SQL migrations applied successfully.
+- Seven positive SQL checks passed.
+- Sixteen negative SQL checks passed.
+- All migrations reproduced in an isolated database.
+- All 23 SQL checks repeated successfully.
+
+These checks validate selected physical database
+constraints, not complete application-level
+Data Contract enforcement.
+
+The previous collection-layer regression baseline
+is 665 passing Python tests.
+
+Persistent Python ingestion, transaction handling,
+observation hashing, rejection hashing, lifecycle
+reconciliation and checkpoint integration remain
+pending.
+
+Architecture decisions ADR-041 through ADR-050
+define the approved implementation baseline.
 
 ### 7.2 Silver Layer
 
@@ -827,4 +1031,4 @@ Outstanding implementation tasks must be recorded in docs/pending_tasks.md.
 | 1.0.0 | Initial data contract |
 | 2.0.0 | Multiple employment types and work modes, source listing identity, canonical opportunities, date precision, experience ranges, category separation, content hashing, and deduplication rules |
 | 2.1.0 | Added salary period, original source status, conservative deadline handling, numeric hash normalization, and source payload minimization |
-| 3.0.0 (proposed) | Restrict supported source_name values to the final eight sources by removing the unimplemented AMIDEAST value; document UN Volunteers mapping and missing employment arrangement semantics. No column or data type changes. Pending team approval. |
+| 3.0.0 | Final eight-source scope; UN Volunteers mapping; missing employment arrangement semantics; approved initial Bronze storage admission policy and physical storage design. Standardized collection fields and data types remain unchanged. Approved under ADR-050. |
