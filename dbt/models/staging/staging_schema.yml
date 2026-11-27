@@ -1,0 +1,279 @@
+version: 2
+
+models:
+  - name: stg_bronze__source_listings
+    description: >
+      One-to-one staging view over bronze.source_listings with explicit column selection,
+      safe whitespace trimming, empty-string-to-NULL normalization on optional text columns,
+      and preservation of raw payloads, source attribution, and NULL vs empty JSONB arrays.
+    columns:
+      - name: source_listing_id
+        description: "Primary key UUID from bronze.source_listings."
+        data_tests:
+          - unique
+          - not_null
+      - name: source_name
+        description: "Supported source identifier per Data Contract v3.0.0."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: source_opportunity_id
+        description: "Non-empty source-provided identifier."
+        data_tests:
+          - not_null
+      - name: source_identity_key
+        description: "Deterministic source identity key ('id:' || source_opportunity_id)."
+        data_tests:
+          - not_null
+      - name: source_url
+        description: "Original listing URL."
+        data_tests:
+          - not_null
+      - name: title
+        description: "Trimmed opportunity title."
+        data_tests:
+          - not_null
+      - name: opportunity_type
+        description: "Standardized opportunity type per Data Contract v3.0.0."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - job
+                - internship
+                - graduate_program
+                - training
+                - scholarship
+                - competition
+                - hackathon
+                - freelance
+                - volunteering
+                - event
+      - name: experience_level
+        description: "Standardized experience level when present."
+        data_tests:
+          - accepted_values:
+              values:
+                - entry_level
+                - junior
+                - mid_level
+                - senior
+                - lead
+                - manager
+                - executive
+                - unknown
+              config:
+                where: "experience_level IS NOT NULL"
+      - name: salary_period
+        description: "Standardized salary period when present."
+        data_tests:
+          - accepted_values:
+              values:
+                - hourly
+                - daily
+                - weekly
+                - monthly
+                - yearly
+                - project
+                - unknown
+              config:
+                where: "salary_period IS NOT NULL"
+      - name: published_at_precision
+        description: "Date precision for published_at when present."
+        data_tests:
+          - accepted_values:
+              values:
+                - exact
+                - date_only
+                - relative
+                - unknown
+              config:
+                where: "published_at_precision IS NOT NULL"
+      - name: deadline_precision
+        description: "Date precision for deadline when present."
+        data_tests:
+          - accepted_values:
+              values:
+                - exact
+                - date_only
+                - relative
+                - unknown
+              config:
+                where: "deadline_precision IS NOT NULL"
+      - name: observed_status
+        description: "Original observed status recorded in Bronze."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - active
+                - expired
+                - closed
+                - unknown
+      - name: collected_at
+        data_tests:
+          - not_null
+      - name: first_seen_at
+        data_tests:
+          - not_null
+      - name: last_seen_at
+        data_tests:
+          - not_null
+      - name: content_hash
+        data_tests:
+          - not_null
+      - name: hash_version
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1]
+              quote: false
+      - name: content_version
+        data_tests:
+          - not_null
+      - name: last_collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: raw_payload
+        data_tests:
+          - not_null
+
+  - name: stg_bronze__source_listing_history
+    description: "One-to-one staging view over bronze.source_listing_history preserving immutable content snapshots."
+    columns:
+      - name: history_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__source_listings')
+              field: source_listing_id
+      - name: content_version
+        data_tests:
+          - not_null
+      - name: content_hash
+        data_tests:
+          - not_null
+      - name: hash_version
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1]
+              quote: false
+      - name: contract_version
+        data_tests:
+          - not_null
+      - name: collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: standardized_payload
+        data_tests:
+          - not_null
+      - name: observed_at
+        data_tests:
+          - not_null
+
+  - name: stg_bronze__collection_runs
+    description: "One-to-one staging view over bronze.collection_runs."
+    columns:
+      - name: run_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_name
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: collection_scope
+        data_tests:
+          - not_null
+      - name: collection_mode
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - api
+                - html
+                - live
+      - name: run_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - running
+                - completed
+                - partial
+                - failed
+                - aborted
+      - name: started_at
+        data_tests:
+          - not_null
+      - name: contract_version
+        data_tests:
+          - not_null
+      - name: hash_version
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1]
+              quote: false
+
+  - name: stg_bronze__invalid_records
+    description: "One-to-one staging view over bronze.invalid_records retained separately from accepted listings (ADR-009, ADR-046)."
+    columns:
+      - name: invalid_record_id
+        data_tests:
+          - unique
+          - not_null
+      - name: collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: failure_stage
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - extraction
+                - mapping
+                - validation
+                - identity
+                - ingestion
+      - name: error_code
+        data_tests:
+          - not_null
+      - name: error_message
+        data_tests:
+          - not_null
+      - name: rejection_hash
+        data_tests:
+          - not_null

@@ -1,0 +1,598 @@
+version: 2
+
+models:
+  # ==================== DIMENSIONS ====================
+
+  - name: dim_sources
+    description: >
+      Conformed dimension of all eight approved MATCHPOINT data sources (Data Contract v3.0.0)
+      with deterministic authority rank, collection approach, and listing/canonical counts.
+    columns:
+      - name: source_name
+        data_tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: source_display_name
+        data_tests:
+          - not_null
+      - name: source_authority_rank
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_count
+        data_tests:
+          - not_null
+      - name: canonical_participating_count
+        data_tests:
+          - not_null
+      - name: canonical_primary_count
+        data_tests:
+          - not_null
+
+  - name: dim_organizations
+    description: >
+      Conformed Gold dimension of standardized organizations with canonical opportunity counts.
+      Secondary organizations observed only on non-primary merged listings are retained for full
+      Silver lineage parity with has_canonical_opportunities = FALSE and canonical_opportunity_count = 0.
+    columns:
+      - name: organization_key
+        data_tests:
+          - unique
+          - not_null
+      - name: organization_name
+        data_tests:
+          - not_null
+      - name: is_alias_mapped
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+      - name: has_canonical_opportunities
+        description: "TRUE when this organization is the primary organization of at least one canonical opportunity."
+        data_tests:
+          - not_null
+
+  - name: dim_locations
+    description: >
+      Conformed Gold dimension of opportunity locations (strictly separated from organization
+      headquarters, work modes, and applicant geographic eligibility). Secondary locations observed
+      only on non-primary merged listings are retained for Silver lineage parity with
+      has_canonical_opportunities = FALSE and canonical_opportunity_count = 0.
+    columns:
+      - name: location_key
+        data_tests:
+          - unique
+          - not_null
+      - name: location_display
+        data_tests:
+          - not_null
+      - name: is_online_location_label
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+      - name: has_canonical_opportunities
+        description: "TRUE when this location is the primary location of at least one canonical opportunity."
+        data_tests:
+          - not_null
+
+  - name: dim_skills
+    description: "Conformed Gold dimension of candidate skills (ADR-007) with deduplicated canonical opportunity counts."
+    columns:
+      - name: skill_key
+        data_tests:
+          - unique
+          - not_null
+      - name: skill_name
+        data_tests:
+          - not_null
+      - name: is_candidate_skill
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+
+  - name: dim_categories
+    description: "Conformed Gold dimension of opportunity categories kept separate from required_skills (ADR-007)."
+    columns:
+      - name: category_key
+        data_tests:
+          - unique
+          - not_null
+      - name: category_name
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+
+  - name: dim_dates
+    description: >
+      Bounded conformed UTC calendar dimension (2020-01-01 through CURRENT_DATE + 5 years)
+      unioned with all genuinely observed fact dates outside that window to prevent outlier
+      dates (e.g. 1970-01-01, 9999-12-31) from generating millions of calendar rows while
+      guaranteeing 100% FK resolvability.
+    columns:
+      - name: date_key
+        data_tests:
+          - unique
+          - not_null
+      - name: calendar_date
+        data_tests:
+          - unique
+          - not_null
+      - name: year
+        data_tests:
+          - not_null
+      - name: month
+        data_tests:
+          - not_null
+      - name: is_egypt_weekend
+        data_tests:
+          - not_null
+      - name: is_within_standard_calendar_range
+        description: "FALSE for genuinely observed outlier dates outside the bounded standard calendar spine."
+        data_tests:
+          - not_null
+
+  # ==================== FACTS & BRIDGES ====================
+
+  - name: fct_opportunities
+    description: >
+      Canonical opportunity fact table (1 row per unique canonical opportunity_id). Enforces
+      consistent deduplicated opportunity counting for Backend APIs, ClickHouse, and Power BI.
+    columns:
+      - name: opportunity_id
+        data_tests:
+          - unique
+          - not_null
+      - name: primary_source_listing_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('fct_opportunity_sources')
+              field: source_listing_id
+      - name: primary_source_name
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sources')
+              field: source_name
+      - name: organization_key
+        data_tests:
+          - relationships:
+              to: ref('dim_organizations')
+              field: organization_key
+              config:
+                where: "organization_key IS NOT NULL"
+      - name: location_key
+        data_tests:
+          - relationships:
+              to: ref('dim_locations')
+              field: location_key
+              config:
+                where: "location_key IS NOT NULL"
+      - name: published_date_key
+        data_tests:
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+              config:
+                where: "published_date_key IS NOT NULL"
+      - name: deadline_date_key
+        data_tests:
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+              config:
+                where: "deadline_date_key IS NOT NULL"
+      - name: first_seen_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: last_seen_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: title
+        data_tests:
+          - not_null
+      - name: opportunity_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - job
+                - internship
+                - graduate_program
+                - training
+                - scholarship
+                - competition
+                - hackathon
+                - freelance
+                - volunteering
+                - event
+      - name: effective_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: source_count
+        data_tests:
+          - not_null
+      - name: is_active
+        data_tests:
+          - not_null
+      - name: is_multi_source
+        data_tests:
+          - not_null
+      - name: has_source_attribute_conflicts
+        data_tests:
+          - not_null
+      - name: all_source_urls
+        data_tests:
+          - not_null
+
+  - name: fct_opportunity_sources
+    description: >
+      Source attribution and deduplication audit fact table (1 row per source_listing_id)
+      preserving original source links, matching methods, and primary-source flags.
+    columns:
+      - name: source_listing_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('fct_opportunities')
+              field: opportunity_id
+      - name: source_name
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sources')
+              field: source_name
+      - name: source_url
+        data_tests:
+          - not_null
+      - name: match_method
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - direct_cross_source_url
+                - shared_external_application_url
+                - multi_signal_composite
+                - singleton
+                - singleton_ambiguous_composite
+                - singleton_transitive_conflict
+      - name: is_primary_source
+        data_tests:
+          - not_null
+
+  - name: bridge_opportunity_skills
+    description: "Canonical deduplicated opportunity-to-skill bridge table."
+    columns:
+      - name: opportunity_skill_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('fct_opportunities')
+              field: opportunity_id
+      - name: skill_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_skills')
+              field: skill_key
+      - name: skill_source_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [explicit_source_tag, extracted]
+
+  - name: bridge_opportunity_categories
+    description: "Canonical deduplicated opportunity-to-category bridge table (separate from skills per ADR-007)."
+    columns:
+      - name: opportunity_category_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('fct_opportunities')
+              field: opportunity_id
+      - name: category_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_categories')
+              field: category_key
+
+  - name: bridge_opportunity_work_modes
+    description: "Canonical opportunity-to-work-mode bridge table."
+    columns:
+      - name: opportunity_work_mode_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('fct_opportunities')
+              field: opportunity_id
+      - name: work_mode
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [on_site, remote, hybrid, unknown]
+
+  - name: bridge_opportunity_employment_types
+    description: "Canonical opportunity-to-employment-type bridge table."
+    columns:
+      - name: opportunity_employment_type_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('fct_opportunities')
+              field: opportunity_id
+      - name: employment_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [full_time, part_time, contract, temporary, freelance, unknown]
+
+  - name: fct_collection_runs
+    description: >
+      Collection pipeline execution and data quality telemetry fact table built from
+      stg_bronze__collection_runs and stg_bronze__invalid_records. Preserves reported run
+      counters (records_invalid) separately from persisted_invalid_record_count alongside an
+      explicit audit diff and anomaly flag (exact ingestion counter semantics remain pending
+      finalization in Mahmoud's persistent storage module).
+    columns:
+      - name: run_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_name
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_sources')
+              field: source_name
+      - name: started_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: run_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [running, completed, partial, failed, aborted]
+      - name: persisted_invalid_record_count
+        data_tests:
+          - not_null
+      - name: persisted_vs_reported_invalid_diff
+        description: "persisted_invalid_record_count - records_invalid; tracks divergence between run counters and retained invalid rows."
+        data_tests:
+          - not_null
+      - name: has_invalid_counter_anomaly
+        description: "TRUE when reported records_invalid exceeds records_received (invalid_record_rate is nulled)."
+        data_tests:
+          - not_null
+
+  # ==================== ANALYTICAL MARTS ====================
+
+  - name: mart_opportunities_by_source
+    description: >
+      Source contribution, multi-source overlap, lifecycle distribution, and run quality metrics across all eight sources.
+      ADDITIVITY RULE: primary_* columns are strictly ADDITIVE across all eight sources (sum = gold.fct_opportunities).
+      *_contributed_* columns are NON-ADDITIVE across sources because multi-source opportunities contribute to each participating source.
+    columns:
+      - name: source_name
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_sources')
+              field: source_name
+      - name: total_source_listings
+        data_tests:
+          - not_null
+      - name: canonical_opportunities_contributed
+        description: "NON-ADDITIVE across sources: distinct canonical opportunities with at least one listing from this source."
+        data_tests:
+          - not_null
+      - name: primary_canonical_opportunities
+        description: "STRICTLY ADDITIVE across sources: canonical opportunities where this source is primary (sum = fct_opportunities count)."
+        data_tests:
+          - not_null
+      - name: primary_active_opportunities
+        description: "STRICTLY ADDITIVE across sources: active canonical opportunities where this source is primary."
+        data_tests:
+          - not_null
+      - name: primary_expired_opportunities
+        description: "STRICTLY ADDITIVE across sources: expired canonical opportunities where this source is primary."
+        data_tests:
+          - not_null
+      - name: primary_closed_opportunities
+        description: "STRICTLY ADDITIVE across sources: closed canonical opportunities where this source is primary."
+        data_tests:
+          - not_null
+      - name: primary_unknown_opportunities
+        description: "STRICTLY ADDITIVE across sources: unknown-status canonical opportunities where this source is primary."
+        data_tests:
+          - not_null
+      - name: active_contributed_opportunities
+        description: "NON-ADDITIVE across sources: active canonical opportunities contributed by this source."
+        data_tests:
+          - not_null
+      - name: expired_contributed_opportunities
+        description: "NON-ADDITIVE across sources: expired canonical opportunities contributed by this source."
+        data_tests:
+          - not_null
+      - name: closed_contributed_opportunities
+        description: "NON-ADDITIVE across sources: closed canonical opportunities contributed by this source."
+        data_tests:
+          - not_null
+      - name: unknown_contributed_opportunities
+        description: "NON-ADDITIVE across sources: unknown-status canonical opportunities contributed by this source."
+        data_tests:
+          - not_null
+
+  - name: mart_opportunities_by_category
+    description: "Canonical opportunity counts by normalized category and lifecycle status (NON-ADDITIVE across categories for multi-category opportunities)."
+    columns:
+      - name: category_key
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_categories')
+              field: category_key
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+
+  - name: mart_opportunities_by_location
+    description: >
+      Canonical opportunity counts by standardized opportunity location and lifecycle status,
+      including an explicit 'unreported' bucket (is_unreported_location = TRUE) for opportunities
+      with NULL location_key so total counts reconcile 100% with gold.fct_opportunities.
+    columns:
+      - name: location_key
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_locations')
+              field: location_key
+              config:
+                where: "NOT is_unreported_location"
+      - name: is_unreported_location
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+
+  - name: mart_opportunities_by_work_mode
+    description: >
+      Canonical opportunity counts by opportunity_type and work_mode (replaces the former Cartesian arrangement mart).
+      NON-ADDITIVE across work_mode rows for the same opportunity_type because one opportunity may support multiple
+      work modes (ADR-002). Use gold.fct_opportunities for grand totals. 'unreported' covers NULL or empty [] arrays.
+    columns:
+      - name: work_mode_bucket_key
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_type
+        data_tests:
+          - not_null
+      - name: work_mode
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [on_site, remote, hybrid, unknown, unreported]
+      - name: opportunities_with_work_mode_count
+        description: "NON-ADDITIVE across work_mode values within an opportunity_type."
+        data_tests:
+          - not_null
+
+  - name: mart_opportunities_by_employment_type
+    description: >
+      Canonical opportunity counts by opportunity_type and employment_type (replaces the former Cartesian arrangement mart).
+      NON-ADDITIVE across employment_type rows for the same opportunity_type because one opportunity may support multiple
+      employment types (ADR-001). Use gold.fct_opportunities for grand totals. 'unreported' covers NULL or empty [] arrays.
+    columns:
+      - name: employment_type_bucket_key
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_type
+        data_tests:
+          - not_null
+      - name: employment_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [full_time, part_time, contract, temporary, freelance, unknown, unreported]
+      - name: opportunities_with_employment_type_count
+        description: "NON-ADDITIVE across employment_type values within an opportunity_type."
+        data_tests:
+          - not_null
+
+  - name: mart_skill_demand
+    description: "Most demanded candidate skills ranked by deduplicated canonical opportunity count."
+    columns:
+      - name: skill_key
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('dim_skills')
+              field: skill_key
+      - name: skill_name
+        data_tests:
+          - not_null
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null
+
+  - name: mart_opportunity_lifecycle_trends
+    description: "Canonical opportunity publication and lifecycle trends strictly for reliable exact/date_only publication dates."
+    columns:
+      - name: trend_bucket_key
+        data_tests:
+          - unique
+          - not_null
+      - name: published_date_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('dim_dates')
+              field: date_key
+      - name: opportunity_type
+        data_tests:
+          - not_null
+      - name: effective_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: canonical_opportunity_count
+        data_tests:
+          - not_null

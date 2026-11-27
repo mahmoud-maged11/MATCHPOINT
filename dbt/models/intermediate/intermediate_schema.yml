@@ -1,0 +1,168 @@
+version: 2
+
+models:
+  - name: int_listings_cleaned
+    description: >
+      Intermediate view cleaning Arabic/English text, standardizing organizations via explicit
+      aliases, standardizing opportunity locations via explicit mappings while keeping work modes
+      and applicant eligibility separate, flagging JSONB array states (missing vs confirmed_empty
+      vs populated), and deriving conservative effective_status per ADR-018 and ADR-047.
+    columns:
+      - name: source_listing_id
+        data_tests:
+          - unique
+          - not_null
+      - name: effective_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - active
+                - expired
+                - closed
+                - unknown
+      - name: effective_status_reason
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - observed_source_status
+                - exact_deadline_passed
+                - date_only_deadline_passed_conservative
+                - observed_source_status_retained
+      - name: work_modes_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: employment_types_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: categories_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: required_skills_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+
+  - name: int_listing_skills_normalized
+    description: >
+      Normalized relational expansion of populated required_skills JSONB arrays with explicit
+      alias standardization, preservation of raw tags, and source-type attribution distinguishing
+      explicit source tags from future text-extracted skills.
+    columns:
+      - name: listing_skill_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+      - name: skill_key
+        data_tests:
+          - not_null
+      - name: skill_source_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [explicit_source_tag, extracted]
+
+  - name: int_listing_categories_normalized
+    description: >
+      Normalized relational expansion of populated categories JSONB arrays kept strictly separate
+      from required_skills per ADR-007.
+    columns:
+      - name: listing_category_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+      - name: category_key
+        data_tests:
+          - not_null
+
+  - name: int_listing_match_features
+    description: >
+      Extracts normalized cross-source matching signals from silver_source_listings, parses
+      verified non-generic external application URLs (ADR-026), assigns deterministic source
+      authority ranks, and flags within-source composite ambiguity.
+    columns:
+      - name: source_listing_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_authority_rank
+        data_tests:
+          - not_null
+      - name: completeness_score
+        data_tests:
+          - not_null
+      - name: is_tier2_eligible
+        data_tests:
+          - not_null
+      - name: is_composite_ambiguous_within_source
+        data_tests:
+          - not_null
+
+  - name: int_opportunity_match_pairs
+    description: >
+      Conservative cross-source matching edges across distinct sources ranked by evidence tier:
+      Tier 1A direct_cross_source_url, Tier 1B shared_external_application_url, and Tier 2
+      multi_signal_composite. Never merges on title similarity alone or missing attributes.
+    columns:
+      - name: listing_id_low
+        data_tests:
+          - not_null
+      - name: listing_id_high
+        data_tests:
+          - not_null
+      - name: match_method
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - direct_cross_source_url
+                - shared_external_application_url
+                - multi_signal_composite
+      - name: pair_evidence
+        data_tests:
+          - not_null
+
+  - name: int_opportunity_clusters
+    description: >
+      Order-independent connected-component resolution generating deterministic canonical
+      opportunity_id UUIDs, explainable match_evidence JSONB objects, and deterministic
+      primary-source selection per canonical opportunity.
+    columns:
+      - name: source_listing_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+      - name: match_method
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - direct_cross_source_url
+                - shared_external_application_url
+                - multi_signal_composite
+                - singleton
+                - singleton_ambiguous_composite
+                - singleton_transitive_conflict
+      - name: match_evidence
+        data_tests:
+          - not_null
+      - name: is_primary_source
+        data_tests:
+          - not_null

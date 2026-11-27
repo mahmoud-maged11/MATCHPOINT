@@ -1,0 +1,127 @@
+version: 2
+
+seeds:
+  - name: organization_aliases
+    description: >
+      Explicit, documented exact alias mapping for known organizations.
+      Does not perform fuzzy or similarity-based merging.
+    columns:
+      - name: raw_alias_normalized
+        description: "Lowercase whitespace-normalized organization label matched exactly."
+        data_tests:
+          - unique
+          - not_null
+      - name: canonical_organization_name
+        description: "Standardized display name for the explicitly mapped organization."
+        data_tests:
+          - not_null
+      - name: alias_reason
+        description: "Documented reason justifying the explicit alias mapping."
+        data_tests:
+          - not_null
+
+  - name: location_mappings
+    description: >
+      Explicit English and Arabic location lookup for Egyptian cities, governorates,
+      country references, and online location labels. Represents opportunity location
+      only; kept separate from organization location, work modes, and applicant eligibility.
+    config:
+      column_types:
+        is_online_location_label: boolean
+    columns:
+      - name: raw_location_normalized
+        description: "Lowercase whitespace-normalized location token matched explicitly."
+        data_tests:
+          - unique
+          - not_null
+      - name: standardized_city
+        description: "Standardized city name when explicitly known; NULL otherwise."
+      - name: standardized_governorate
+        description: "Standardized governorate name when explicitly known; NULL otherwise."
+      - name: standardized_country
+        description: "Standardized country name when explicitly known; NULL otherwise."
+      - name: country_code
+        description: "ISO 3166-1 alpha-2 country code when explicitly known; NULL otherwise."
+      - name: is_online_location_label
+        description: "TRUE only when the raw location text itself is an online/remote label."
+        data_tests:
+          - not_null
+
+  - name: skill_aliases
+    description: >
+      Explicit, documented exact alias mapping for technical and common candidate skills.
+      Unmapped source skills retain their cleaned original names without being discarded.
+    columns:
+      - name: raw_skill_normalized
+        description: "Lowercase whitespace-normalized raw skill tag."
+        data_tests:
+          - unique
+          - not_null
+      - name: standardized_skill_name
+        description: "Standardized skill display name."
+        data_tests:
+          - not_null
+      - name: skill_group
+        description: "Optional coarse grouping for documented alias entries."
+
+  - name: generic_application_portals
+    description: >
+      Explicit list of generic platform homepages, URL shorteners, social channels, and
+      shared form endpoints excluded from strong external application URL matching (ADR-026).
+    columns:
+      - name: portal_pattern
+        description: "Lowercase host or host/path pattern excluded from strong URL matching."
+        data_tests:
+          - unique
+          - not_null
+      - name: match_scope
+        description: "Exclusion scope rule (host_root_only, host_any_generic_portal, path_prefix_generic, path_exact_generic)."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - host_root_only
+                - host_any_generic_portal
+                - path_prefix_generic
+                - path_exact_generic
+      - name: exclusion_reason
+        description: "Documented rationale for excluding this portal pattern."
+        data_tests:
+          - not_null
+
+  - name: supported_sources
+    description: >
+      Single source of truth for the eight approved MATCHPOINT data sources (Data Contract v3.0.0),
+      their display names, deterministic source authority rankings, and documented collection approaches.
+    config:
+      column_types:
+        source_authority_rank: integer
+    columns:
+      - name: source_name
+        description: "Approved Data Contract v3.0.0 source identifier."
+        data_tests:
+          - unique
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: source_display_name
+        description: "Human-readable display name for BI and application views."
+        data_tests:
+          - not_null
+      - name: source_authority_rank
+        description: "Deterministic source authority rank (1 = highest authority, 8 = aggregator)."
+        data_tests:
+          - unique
+          - not_null
+      - name: collection_approach
+        description: "Documented collection methodology for the source adapter."
+        data_tests:
+          - not_null

@@ -1,0 +1,73 @@
+from dataclasses import dataclass
+
+from scrapers.config import (
+    REQUEST_TIMEOUT,
+    MAX_RETRIES,
+    REQUEST_DELAY
+)
+
+
+@dataclass(frozen=True)
+class SourceConfig:
+
+    base_url: str
+
+    request_timeout: int = REQUEST_TIMEOUT
+
+    max_retries: int = MAX_RETRIES
+
+    request_delay: float = REQUEST_DELAY
+
+    enabled: bool = False
+
+
+SOURCE_CONFIGS = {
+    "devpost": SourceConfig(
+        base_url="https://devpost.com",
+        enabled=True,
+    ),
+    "un_volunteers": SourceConfig(
+        base_url="https://app.unv.org",
+        enabled=True
+    ),
+
+    "wuzzuf": SourceConfig(
+        base_url="https://wuzzuf.net",
+        enabled=True,
+    ),
+
+    "forasna": SourceConfig(
+        base_url="https://forasna.com",
+        enabled=True,
+    ),
+
+    "egyincs": SourceConfig(
+        base_url="https://egyincs.com",
+        enabled=True,
+    ),
+
+    "itida": SourceConfig(
+        base_url="https://itida.gov.eg",
+        enabled=True,
+    ),
+
+    "nti": SourceConfig(
+        base_url="https://www.nti.sci.eg",
+        enabled=True,
+    ),
+
+    "bayt": SourceConfig(
+        base_url="https://www.bayt.com",
+        enabled=True,
+    ),
+
+}
+
+def get_source_config(source_name: str) -> SourceConfig:
+
+    if source_name not in SOURCE_CONFIGS:
+        raise ValueError(
+            f"No configuration found for source: {source_name}"
+        )
+
+    return SOURCE_CONFIGS[source_name]

@@ -269,3 +269,15 @@ scrapers/storage_state.json
 # Operating System Files
 .DS_Store
 Thumbs.db
+
+# Real source HTML fixtures
+/tests/fixtures/wuzzuf_sample.html
+
+
+
+
+# Local source exploration data
+
+/data/devpost/
+
+/data/un_volunteers/

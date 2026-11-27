@@ -1,0 +1,90 @@
+raw_location_normalized,standardized_city,standardized_governorate,standardized_country,country_code,is_online_location_label
+egypt,,,Egypt,EG,false
+مصر,,,Egypt,EG,false
+cairo,Cairo,Cairo,Egypt,EG,false
+القاهرة,Cairo,Cairo,Egypt,EG,false
+القاهره,Cairo,Cairo,Egypt,EG,false
+new cairo,New Cairo,Cairo,Egypt,EG,false
+القاهرة الجديدة,New Cairo,Cairo,Egypt,EG,false
+maadi,Maadi,Cairo,Egypt,EG,false
+المعادي,Maadi,Cairo,Egypt,EG,false
+nasr city,Nasr City,Cairo,Egypt,EG,false
+مدينة نصر,Nasr City,Cairo,Egypt,EG,false
+heliopolis,Heliopolis,Cairo,Egypt,EG,false
+مصر الجديدة,Heliopolis,Cairo,Egypt,EG,false
+giza,Giza,Giza,Egypt,EG,false
+الجيزة,Giza,Giza,Egypt,EG,false
+الجيزه,Giza,Giza,Egypt,EG,false
+6th of october,6th of October,Giza,Egypt,EG,false
+6th of october city,6th of October,Giza,Egypt,EG,false
+6 october,6th of October,Giza,Egypt,EG,false
+6 أكتوبر,6th of October,Giza,Egypt,EG,false
+السادس من أكتوبر,6th of October,Giza,Egypt,EG,false
+sheikh zayed,Sheikh Zayed,Giza,Egypt,EG,false
+الشيخ زايد,Sheikh Zayed,Giza,Egypt,EG,false
+smart village,Smart Village,Giza,Egypt,EG,false
+القرية الذكية,Smart Village,Giza,Egypt,EG,false
+alexandria,Alexandria,Alexandria,Egypt,EG,false
+الإسكندرية,Alexandria,Alexandria,Egypt,EG,false
+الاسكندرية,Alexandria,Alexandria,Egypt,EG,false
+الاسكندريه,Alexandria,Alexandria,Egypt,EG,false
+mansoura,Mansoura,Dakahlia,Egypt,EG,false
+المنصورة,Mansoura,Dakahlia,Egypt,EG,false
+dakahlia,,Dakahlia,Egypt,EG,false
+الدقهلية,,Dakahlia,Egypt,EG,false
+tanta,Tanta,Gharbia,Egypt,EG,false
+طنطا,Tanta,Gharbia,Egypt,EG,false
+gharbia,,Gharbia,Egypt,EG,false
+الغربية,,Gharbia,Egypt,EG,false
+zagazig,Zagazig,Sharqia,Egypt,EG,false
+الزقازيق,Zagazig,Sharqia,Egypt,EG,false
+sharqia,,Sharqia,Egypt,EG,false
+الشرقية,,Sharqia,Egypt,EG,false
+10th of ramadan,10th of Ramadan,Sharqia,Egypt,EG,false
+العاشر من رمضان,10th of Ramadan,Sharqia,Egypt,EG,false
+assiut,Assiut,Assiut,Egypt,EG,false
+asyut,Assiut,Assiut,Egypt,EG,false
+أسيوط,Assiut,Assiut,Egypt,EG,false
+اسيوط,Assiut,Assiut,Egypt,EG,false
+aswan,Aswan,Aswan,Egypt,EG,false
+أسوان,Aswan,Aswan,Egypt,EG,false
+اسوان,Aswan,Aswan,Egypt,EG,false
+luxor,Luxor,Luxor,Egypt,EG,false
+الأقصر,Luxor,Luxor,Egypt,EG,false
+ismailia,Ismailia,Ismailia,Egypt,EG,false
+الإسماعيلية,Ismailia,Ismailia,Egypt,EG,false
+port said,Port Said,Port Said,Egypt,EG,false
+بورسعيد,Port Said,Port Said,Egypt,EG,false
+suez,Suez,Suez,Egypt,EG,false
+السويس,Suez,Suez,Egypt,EG,false
+minya,Minya,Minya,Egypt,EG,false
+المنيا,Minya,Minya,Egypt,EG,false
+sohag,Sohag,Sohag,Egypt,EG,false
+سوهاج,Sohag,Sohag,Egypt,EG,false
+beni suef,Beni Suef,Beni Suef,Egypt,EG,false
+بني سويف,Beni Suef,Beni Suef,Egypt,EG,false
+fayoum,Fayoum,Fayoum,Egypt,EG,false
+الفيوم,Fayoum,Fayoum,Egypt,EG,false
+qena,Qena,Qena,Egypt,EG,false
+قنا,Qena,Qena,Egypt,EG,false
+damietta,Damietta,Damietta,Egypt,EG,false
+دمياط,Damietta,Damietta,Egypt,EG,false
+kafr el sheikh,Kafr El Sheikh,Kafr El Sheikh,Egypt,EG,false
+كفر الشيخ,Kafr El Sheikh,Kafr El Sheikh,Egypt,EG,false
+menoufia,,Menoufia,Egypt,EG,false
+المنوفية,,Menoufia,Egypt,EG,false
+beheira,,Beheira,Egypt,EG,false
+البحيرة,,Beheira,Egypt,EG,false
+qalyubia,,Qalyubia,Egypt,EG,false
+القليوبية,,Qalyubia,Egypt,EG,false
+hurghada,Hurghada,Red Sea,Egypt,EG,false
+الغردقة,Hurghada,Red Sea,Egypt,EG,false
+red sea,,Red Sea,Egypt,EG,false
+البحر الأحمر,,Red Sea,Egypt,EG,false
+sharm el sheikh,Sharm El Sheikh,South Sinai,Egypt,EG,false
+شرم الشيخ,Sharm El Sheikh,South Sinai,Egypt,EG,false
+online,,,,,true
+remote,,,,,true
+أونلاين,,,,,true
+اونلاين,,,,,true
+عن بعد,,,,,true

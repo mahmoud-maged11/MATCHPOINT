@@ -1,0 +1,46 @@
+# MATCHPOINT dbt PostgreSQL Profile Example
+#
+# Copy this file to `dbt/profiles.yml` (which is excluded from Git via `.gitignore`)
+# or `~/.dbt/profiles.yml`, and provide database credentials via environment variables.
+#
+# Never hardcode passwords or commit `profiles.yml` to version control.
+#
+# Required environment variables:
+#   POSTGRES_PASSWORD   - PostgreSQL password (required; no default value)
+#
+# Optional environment variables (with defaults shown):
+#   DBT_TARGET          - Active target: dev | test (default: dev)
+#   POSTGRES_HOST       - Hostname: use 'localhost' from host machine, or 'postgres' inside Docker (default: localhost)
+#   POSTGRES_PORT       - PostgreSQL port (default: 5432)
+#   POSTGRES_USER       - PostgreSQL username (default: matchpoint)
+#   POSTGRES_DB         - Target database for dev (default: matchpoint)
+#   POSTGRES_TEST_DB    - Isolated database for test target (default: matchpoint_test)
+#   DBT_SCHEMA          - Default fallback schema if a model omits +schema (default: silver)
+#   DBT_THREADS         - Parallel dbt execution threads (default: 4)
+
+matchpoint:
+  target: "{{ env_var('DBT_TARGET', 'dev') }}"
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      user: "{{ env_var('POSTGRES_USER', 'matchpoint') }}"
+      pass: "{{ env_var('POSTGRES_PASSWORD') }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'matchpoint') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'silver') }}"
+      threads: "{{ env_var('DBT_THREADS', '4') | as_number }}"
+      keepalives_idle: 0
+      connect_timeout: 10
+
+    test:
+      type: postgres
+      host: "{{ env_var('POSTGRES_HOST', 'localhost') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | as_number }}"
+      user: "{{ env_var('POSTGRES_USER', 'matchpoint') }}"
+      pass: "{{ env_var('POSTGRES_PASSWORD') }}"
+      dbname: "{{ env_var('POSTGRES_TEST_DB', 'matchpoint_test') }}"
+      schema: "{{ env_var('DBT_SCHEMA', 'silver') }}"
+      threads: "{{ env_var('DBT_THREADS', '4') | as_number }}"
+      keepalives_idle: 0
+      connect_timeout: 10

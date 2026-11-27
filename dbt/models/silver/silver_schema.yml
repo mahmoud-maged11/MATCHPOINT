@@ -1,0 +1,632 @@
+version: 2
+
+models:
+  - name: silver_source_listings
+    description: >
+      Cleaned, standardized source-level listings in the Silver layer (one row per Bronze
+      source_listing_id). Preserves full source attribution, original raw values, Bronze JSONB
+      arrays (NULL vs []), and computes conservative effective_status per ADR-018 and ADR-047.
+      Cross-source deduplication and canonical opportunity_id generation are deferred to Phase 4.
+    columns:
+      - name: source_listing_id
+        description: "Primary key UUID matching bronze.source_listings.source_listing_id."
+        data_tests:
+          - unique
+          - not_null
+      - name: source_name
+        description: "Supported source identifier per Data Contract v3.0.0."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: source_opportunity_id
+        data_tests:
+          - not_null
+      - name: source_identity_key
+        data_tests:
+          - not_null
+      - name: source_url
+        data_tests:
+          - not_null
+      - name: title
+        data_tests:
+          - not_null
+      - name: organization_key
+        description: "Foreign key to silver_organizations when organization is present; NULL otherwise."
+        data_tests:
+          - relationships:
+              to: ref('silver_organizations')
+              field: organization_key
+              config:
+                where: "organization_key IS NOT NULL"
+      - name: opportunity_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - job
+                - internship
+                - graduate_program
+                - training
+                - scholarship
+                - competition
+                - hackathon
+                - freelance
+                - volunteering
+                - event
+      - name: location_key
+        description: "Foreign key to silver_locations representing opportunity location; NULL when missing."
+        data_tests:
+          - relationships:
+              to: ref('silver_locations')
+              field: location_key
+              config:
+                where: "location_key IS NOT NULL"
+      - name: work_modes_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: employment_types_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: categories_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: required_skills_state
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [missing, confirmed_empty, populated]
+      - name: experience_level
+        data_tests:
+          - accepted_values:
+              values:
+                - entry_level
+                - junior
+                - mid_level
+                - senior
+                - lead
+                - manager
+                - executive
+                - unknown
+              config:
+                where: "experience_level IS NOT NULL"
+      - name: salary_period
+        data_tests:
+          - accepted_values:
+              values:
+                - hourly
+                - daily
+                - weekly
+                - monthly
+                - yearly
+                - project
+                - unknown
+              config:
+                where: "salary_period IS NOT NULL"
+      - name: published_at_precision
+        data_tests:
+          - accepted_values:
+              values: [exact, date_only, relative, unknown]
+              config:
+                where: "published_at_precision IS NOT NULL"
+      - name: deadline_precision
+        data_tests:
+          - accepted_values:
+              values: [exact, date_only, relative, unknown]
+              config:
+                where: "deadline_precision IS NOT NULL"
+      - name: observed_status
+        description: "Original status observed in Bronze."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: effective_status
+        description: "Derived downstream opportunity status per ADR-018 and ADR-047."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: effective_status_reason
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - observed_source_status
+                - exact_deadline_passed
+                - date_only_deadline_passed_conservative
+                - observed_source_status_retained
+      - name: content_hash
+        data_tests:
+          - not_null
+      - name: hash_version
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [1]
+              quote: false
+      - name: content_version
+        data_tests:
+          - not_null
+      - name: last_collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: raw_payload
+        data_tests:
+          - not_null
+
+  - name: silver_organizations
+    description: >
+      Distinct standardized organizations observed in silver_source_listings. Uses explicit
+      documented aliases only; never merges organizations based on name similarity alone.
+    columns:
+      - name: organization_key
+        data_tests:
+          - unique
+          - not_null
+      - name: organization_name
+        data_tests:
+          - not_null
+      - name: is_alias_mapped
+        data_tests:
+          - not_null
+      - name: source_listing_count
+        data_tests:
+          - not_null
+
+  - name: silver_locations
+    description: >
+      Distinct opportunity locations observed in silver_source_listings. Kept strictly separate
+      from organization headquarters, work arrangements (work_modes), and applicant eligibility.
+    columns:
+      - name: location_key
+        data_tests:
+          - unique
+          - not_null
+      - name: location_display
+        data_tests:
+          - not_null
+      - name: is_online_location_label
+        data_tests:
+          - not_null
+      - name: is_standardized_mapping
+        data_tests:
+          - not_null
+      - name: source_listing_count
+        data_tests:
+          - not_null
+
+  - name: silver_skills
+    description: >
+      Distinct normalized candidate skills derived from explicitly supplied source skill tags.
+      Unmapped tags retain their cleaned original values without data loss.
+    columns:
+      - name: skill_key
+        data_tests:
+          - unique
+          - not_null
+      - name: skill_name
+        data_tests:
+          - not_null
+      - name: is_alias_mapped
+        data_tests:
+          - not_null
+      - name: is_candidate_skill
+        data_tests:
+          - not_null
+      - name: source_listing_count
+        data_tests:
+          - not_null
+
+  - name: silver_categories
+    description: >
+      Distinct normalized opportunity categories kept strictly separate from required_skills (ADR-007).
+    columns:
+      - name: category_key
+        data_tests:
+          - unique
+          - not_null
+      - name: category_name
+        data_tests:
+          - not_null
+      - name: source_listing_count
+        data_tests:
+          - not_null
+
+  - name: silver_listing_skills
+    description: "Normalized relational mapping between silver_source_listings and silver_skills."
+    columns:
+      - name: listing_skill_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: skill_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_skills')
+              field: skill_key
+      - name: skill_name
+        data_tests:
+          - not_null
+      - name: skill_raw
+        data_tests:
+          - not_null
+      - name: skill_source_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [explicit_source_tag, extracted]
+
+  - name: silver_listing_categories
+    description: "Normalized relational mapping between silver_source_listings and silver_categories."
+    columns:
+      - name: listing_category_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: category_key
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_categories')
+              field: category_key
+      - name: category_name
+        data_tests:
+          - not_null
+      - name: category_raw
+        data_tests:
+          - not_null
+
+  - name: silver_listing_work_modes
+    description: >
+      Normalized relational expansion of populated work_modes JSONB arrays. Listings with NULL
+      or empty [] work_modes do not emit rows here; that distinction is preserved on silver_source_listings.
+    columns:
+      - name: listing_work_mode_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: work_mode
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [on_site, remote, hybrid, unknown]
+
+  - name: silver_listing_employment_types
+    description: >
+      Normalized relational expansion of populated employment_types JSONB arrays. Listings with NULL
+      or empty [] employment_types do not emit rows here; that distinction is preserved on silver_source_listings.
+    columns:
+      - name: listing_employment_type_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: employment_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [full_time, part_time, contract, temporary, freelance, unknown]
+
+  - name: silver_listing_history
+    description: >
+      Read-only Silver traceability view/table over bronze.source_listing_history enriched with
+      collection run context. Preserves immutable content versions without creating synthetic
+      versions from time passage (ADR-043, ADR-047).
+    columns:
+      - name: history_id
+        data_tests:
+          - unique
+          - not_null
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: content_version
+        data_tests:
+          - not_null
+      - name: content_hash
+        data_tests:
+          - not_null
+      - name: observed_at
+        data_tests:
+          - not_null
+
+  - name: silver_source_traceability
+    description: >
+      Source-level lineage and attribution summary linking each silver_source_listings row to its
+      latest collection run and content history counts. Provides the verified traceability base for
+      Phase 4 canonical opportunity mapping.
+    columns:
+      - name: source_listing_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: source_name
+        data_tests:
+          - not_null
+      - name: source_opportunity_id
+        data_tests:
+          - not_null
+      - name: source_identity_key
+        data_tests:
+          - not_null
+      - name: source_url
+        data_tests:
+          - not_null
+      - name: last_collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: history_version_count
+        data_tests:
+          - not_null
+
+  - name: silver_opportunity_sources
+    description: >
+      Canonical-to-source attribution mapping linking every silver_source_listings row to
+      its deterministic canonical opportunity_id (ADR-003, ADR-004, ADR-026). Preserves every
+      original source listing, match method, structured JSONB match evidence, and deterministic
+      primary-source indicator.
+    columns:
+      - name: source_listing_id
+        description: "Primary key UUID matching silver_source_listings.source_listing_id."
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('silver_source_listings')
+              field: source_listing_id
+      - name: opportunity_id
+        description: "Deterministic canonical opportunity UUID referencing silver_opportunities."
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_opportunities')
+              field: opportunity_id
+      - name: source_name
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: source_opportunity_id
+        data_tests:
+          - not_null
+      - name: source_identity_key
+        data_tests:
+          - not_null
+      - name: source_url
+        data_tests:
+          - not_null
+      - name: canonical_anchor_key
+        data_tests:
+          - not_null
+      - name: match_method
+        description: "Explainable rule that produced this listing's canonical grouping."
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - direct_cross_source_url
+                - shared_external_application_url
+                - multi_signal_composite
+                - singleton
+                - singleton_ambiguous_composite
+                - singleton_transitive_conflict
+      - name: match_evidence
+        description: "Structured JSONB object explaining why this listing was grouped or kept separate."
+        data_tests:
+          - not_null
+      - name: is_primary_source
+        description: "TRUE for the single deterministic primary source representing the canonical opportunity."
+        data_tests:
+          - not_null
+      - name: source_authority_rank
+        data_tests:
+          - not_null
+      - name: last_collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+
+  - name: silver_opportunities
+    description: >
+      One canonical record per deduplicated business opportunity (Data Contract v3.0.0 §2.7,
+      ADR-003, ADR-004, ADR-026). Preserves best-supported canonical attributes, all original
+      source links in all_source_urls, and explicit cross-source conflict indicators without
+      silently discarding secondary source values.
+    columns:
+      - name: opportunity_id
+        description: "Deterministic canonical opportunity UUID."
+        data_tests:
+          - unique
+          - not_null
+      - name: primary_source_listing_id
+        description: "Source listing UUID selected as the deterministic primary source."
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              to: ref('silver_opportunity_sources')
+              field: source_listing_id
+      - name: primary_source_name
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - wuzzuf
+                - forasna
+                - egyincs
+                - itida
+                - nti
+                - bayt
+                - devpost
+                - un_volunteers
+      - name: primary_source_url
+        data_tests:
+          - not_null
+      - name: source_count
+        data_tests:
+          - not_null
+      - name: source_names
+        data_tests:
+          - not_null
+      - name: all_source_urls
+        data_tests:
+          - not_null
+      - name: title
+        data_tests:
+          - not_null
+      - name: organization_key
+        data_tests:
+          - relationships:
+              to: ref('silver_organizations')
+              field: organization_key
+              config:
+                where: "organization_key IS NOT NULL"
+      - name: opportunity_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              values:
+                - job
+                - internship
+                - graduate_program
+                - training
+                - scholarship
+                - competition
+                - hackathon
+                - freelance
+                - volunteering
+                - event
+      - name: location_key
+        data_tests:
+          - relationships:
+              to: ref('silver_locations')
+              field: location_key
+              config:
+                where: "location_key IS NOT NULL"
+      - name: effective_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: primary_effective_status
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: [active, expired, closed, unknown]
+      - name: has_source_attribute_conflicts
+        data_tests:
+          - not_null
+      - name: conflicting_attributes
+        data_tests:
+          - not_null
+      - name: first_seen_at
+        data_tests:
+          - not_null
+      - name: last_seen_at
+        data_tests:
+          - not_null
+
+  - name: silver_opportunity_history
+    description: >
+      Immutable Bronze content-version history linked to both source_listing_id and canonical
+      opportunity_id (ADR-043). Preserves exact Bronze history rows without inventing or rewriting
+      historical snapshots.
+    columns:
+      - name: history_id
+        data_tests:
+          - unique
+          - not_null
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_opportunities')
+              field: opportunity_id
+      - name: source_listing_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('silver_opportunity_sources')
+              field: source_listing_id
+      - name: collection_run_id
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_bronze__collection_runs')
+              field: run_id
+      - name: content_version
+        data_tests:
+          - not_null
+      - name: content_hash
+        data_tests:
+          - not_null
+      - name: observed_at
+        data_tests:
+          - not_null

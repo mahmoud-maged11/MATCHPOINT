@@ -1,0 +1,4 @@
+# MATCHPOINT Data Warehouse (dbt + PostgreSQL 16) dependencies
+# Recommended Python runtime: Python 3.12 (aligned with repository README.md)
+dbt-core>=1.8.0,<1.10.0
+dbt-postgres>=1.8.0,<1.10.0
