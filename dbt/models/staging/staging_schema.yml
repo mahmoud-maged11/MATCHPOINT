@@ -5,7 +5,8 @@ models:
     description: >
       One-to-one staging view over bronze.source_listings with explicit column selection,
       safe whitespace trimming, empty-string-to-NULL normalization on optional text columns,
-      and preservation of raw payloads, source attribution, and NULL vs empty JSONB arrays.
+      and exact preservation of source identity, original raw evidence,
+      raw payloads, and NULL vs empty JSONB arrays.
     columns:
       - name: source_listing_id
         description: "Primary key UUID from bronze.source_listings."
@@ -143,7 +144,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [1]
+                values: ["{{ var('supported_hash_version') }}"]
                 quote: false
       - name: content_version
         data_tests:
@@ -184,11 +185,14 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [1]
+                values: ["{{ var('supported_hash_version') }}"]
                 quote: false
       - name: contract_version
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ["{{ var('contract_version') }}"]
       - name: collection_run_id
         data_tests:
           - not_null
@@ -253,12 +257,15 @@ models:
       - name: contract_version
         data_tests:
           - not_null
+          - accepted_values:
+              arguments:
+                values: ["{{ var('contract_version') }}"]
       - name: hash_version
         data_tests:
           - not_null
           - accepted_values:
               arguments:
-                values: [1]
+                values: ["{{ var('supported_hash_version') }}"]
                 quote: false
 
   - name: stg_bronze__invalid_records

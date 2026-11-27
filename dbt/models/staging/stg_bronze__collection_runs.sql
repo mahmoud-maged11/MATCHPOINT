@@ -13,7 +13,7 @@ SELECT
     records_invalid,
     records_stale,
     records_conflicted,
-    BTRIM(contract_version) AS contract_version,
+    contract_version,
     hash_version,
     NULLIF(BTRIM(error_message), '') AS error_message,
     metadata

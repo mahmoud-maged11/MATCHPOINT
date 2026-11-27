@@ -1,10 +1,10 @@
 SELECT
     -- Source identity
     source_listing_id,
-    BTRIM(source_name) AS source_name,
-    BTRIM(source_opportunity_id) AS source_opportunity_id,
-    BTRIM(source_identity_key) AS source_identity_key,
-    BTRIM(source_url) AS source_url,
+    source_name,
+    source_opportunity_id,
+    source_identity_key,
+    source_url,
 
     -- Basic opportunity information
     BTRIM(title) AS title,
@@ -20,7 +20,7 @@ SELECT
 
     -- Experience and qualifications
     NULLIF(BTRIM(experience_level), '') AS experience_level,
-    NULLIF(BTRIM(experience_level_raw), '') AS experience_level_raw,
+    experience_level_raw,
     experience_years_min,
     experience_years_max,
     NULLIF(BTRIM(education_level), '') AS education_level,
@@ -35,15 +35,15 @@ SELECT
 
     -- Publication and deadline dates (original raw strings and precision preserved)
     published_at,
-    NULLIF(BTRIM(published_at_raw), '') AS published_at_raw,
+    published_at_raw,
     NULLIF(BTRIM(published_at_precision), '') AS published_at_precision,
     deadline,
-    NULLIF(BTRIM(deadline_raw), '') AS deadline_raw,
+    deadline_raw,
     NULLIF(BTRIM(deadline_precision), '') AS deadline_precision,
 
     -- Observed status preserved explicitly prior to downstream lifecycle derivation
     BTRIM(status) AS observed_status,
-    NULLIF(BTRIM(source_status_raw), '') AS source_status_raw,
+    source_status_raw,
 
     -- Ingestion and versioning metadata
     collected_at,
