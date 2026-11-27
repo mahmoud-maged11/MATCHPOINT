@@ -1,5 +1,32 @@
 # MATCHPOINT Data Warehouse (dbt)
 
+## Current Warehouse Validation
+
+The latest warehouse technical review was completed on
+2026-11-27.
+
+Current acceptance baseline:
+
+- 44 dbt models.
+- 483 passing dbt data tests.
+- 41 baseline listings and 33 canonical opportunities.
+- 52 expanded listings and 44 canonical opportunities.
+- All 52 expanded source mappings preserved.
+- Silver mapping idempotency passed.
+- All 20 Gold snapshot comparisons passed.
+- All eight supported sources represented.
+
+Earlier results of 461 tests, 32 baseline opportunities
+and 43 expanded opportunities are historical unless
+explicitly identified otherwise.
+
+See `dbt/docs/warehouse_review_2026_11_27.md` from the
+repository root for the complete technical review,
+current acceptance results and remaining limitations.
+
+Synthetic acceptance does not establish real-data ingestion
+or production readiness.
+
 This directory contains the dbt project for the **MATCHPOINT** Data Warehouse running on **PostgreSQL 16**, aligned with **Data Contract v3.0.0** and **ADR-041 through ADR-050**.
 
 > **Current Milestone Status (Phase 5):** The dbt project foundation, Bronze source definitions, explicit lookup & generic-portal seeds, Bronze staging views, intermediate cleaning/lifecycle/deduplication models, Silver source-level and canonical opportunity models, Gold analytical dimensions/facts/bridges/marts, and dbt data quality tests are implemented and synthetic-runtime validated on an isolated PostgreSQL 16.16 test database (`matchpoint_test`). Persistent Python ingestion into Bronze (owned by Mahmoud) and downstream Airflow/ClickHouse/Power BI/Backend integration remain pending.
@@ -251,7 +278,7 @@ Review improvements:
 - Validated eight runner functional checks.
 
 The expanded synthetic dataset contains 52 source listings
-across eight supported sources and 43 canonical opportunities.
+across eight supported sources and 44 canonical opportunities.
 
 Live ingestion, production-scale performance, Linux/Airflow runner
 validation, and downstream integration remain pending.

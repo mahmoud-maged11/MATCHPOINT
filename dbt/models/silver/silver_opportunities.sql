@@ -31,6 +31,7 @@ WITH ranked_members AS (
         sl.standardized_country,
         sl.country_code,
         sl.is_online_location_label,
+        sl.is_location_standardized,
         sl.applicant_eligibility_raw,
         sl.work_modes,
         sl.work_modes_state,
@@ -75,7 +76,23 @@ WITH ranked_members AS (
                     WHERE NULLIF(BTRIM(ev.val), '') IS NOT NULL
                 )
             ELSE NULL
-        END AS employment_types_signature
+        END AS employment_types_signature,
+        CASE
+            WHEN JSONB_TYPEOF(sl.work_modes) = 'array'
+                 AND JSONB_ARRAY_LENGTH(sl.work_modes) > 0
+                 AND NOT (sl.work_modes ? 'unknown')
+            THEN (
+                SELECT STRING_AGG(
+                    DISTINCT LOWER(BTRIM(wm.val)),
+                    ',' ORDER BY LOWER(BTRIM(wm.val))
+                )
+                FROM JSONB_ARRAY_ELEMENTS_TEXT(
+                    sl.work_modes
+                ) AS wm(val)
+                WHERE NULLIF(BTRIM(wm.val), '') IS NOT NULL
+            )
+            ELSE NULL
+        END AS work_modes_signature
     FROM {{ ref('silver_opportunity_sources') }} os
     INNER JOIN {{ ref('silver_source_listings') }} sl
         ON os.source_listing_id = sl.source_listing_id
@@ -106,10 +123,19 @@ best_experience AS (
         experience_years_max,
         ROW_NUMBER() OVER (
             PARTITION BY opportunity_id
-            ORDER BY member_priority_rank ASC
+            ORDER BY
+                CASE
+                    WHEN experience_level NOT IN ('unknown')
+                      OR experience_years_min IS NOT NULL
+                      OR experience_years_max IS NOT NULL
+                    THEN 0
+                    ELSE 1
+                END,
+                member_priority_rank ASC
         ) AS rn
     FROM ranked_members
     WHERE experience_level IS NOT NULL
+       OR experience_level_raw IS NOT NULL
        OR experience_years_min IS NOT NULL
        OR experience_years_max IS NOT NULL
 ),
@@ -160,7 +186,12 @@ best_location AS (
         is_online_location_label,
         ROW_NUMBER() OVER (
             PARTITION BY opportunity_id
-            ORDER BY member_priority_rank ASC
+            ORDER BY
+                CASE
+                    WHEN is_location_standardized IS TRUE THEN 0
+                    ELSE 1
+                END,
+                member_priority_rank ASC
         ) AS rn
     FROM ranked_members
     WHERE location_key IS NOT NULL
@@ -239,10 +270,15 @@ employment_types_merged AS (
 categories_merged AS (
     SELECT
         os.opportunity_id,
-        JSONB_AGG(DISTINCT lc.category_name ORDER BY lc.category_name) AS canonical_categories
+        JSONB_AGG(
+            DISTINCT c.category_name
+            ORDER BY c.category_name
+        ) AS canonical_categories
     FROM {{ ref('silver_opportunity_sources') }} os
     INNER JOIN {{ ref('silver_listing_categories') }} lc
         ON os.source_listing_id = lc.source_listing_id
+    INNER JOIN {{ ref('silver_categories') }} c
+        ON lc.category_key = c.category_key
     GROUP BY os.opportunity_id
 ),
 
@@ -250,10 +286,15 @@ categories_merged AS (
 skills_merged AS (
     SELECT
         os.opportunity_id,
-        JSONB_AGG(DISTINCT ls.skill_name ORDER BY ls.skill_name) AS canonical_required_skills
+        JSONB_AGG(
+            DISTINCT s.skill_name
+            ORDER BY s.skill_name
+        ) AS canonical_required_skills
     FROM {{ ref('silver_opportunity_sources') }} os
     INNER JOIN {{ ref('silver_listing_skills') }} ls
         ON os.source_listing_id = ls.source_listing_id
+    INNER JOIN {{ ref('silver_skills') }} s
+        ON ls.skill_key = s.skill_key
     GROUP BY os.opportunity_id
 ),
 
@@ -332,6 +373,10 @@ group_agg AS (
         -- Conflict detection for differing populated known employment_types across merged sources
         (COUNT(DISTINCT employment_types_signature) FILTER (WHERE employment_types_signature IS NOT NULL) > 1) AS conflict_employment_types,
         (
+            COUNT(DISTINCT work_modes_signature)
+            FILTER (WHERE work_modes_signature IS NOT NULL) > 1
+        ) AS conflict_work_modes,
+        (
             COUNT(DISTINCT deadline)
             FILTER (WHERE deadline IS NOT NULL AND deadline_precision IN ('exact', 'date_only')) > 1
         ) AS conflict_deadline,
@@ -364,6 +409,7 @@ conflicts_built AS (
                 CASE WHEN ga.conflict_effective_status THEN 'effective_status' END,
                 CASE WHEN ga.conflict_salary THEN 'salary' END,
                 CASE WHEN ga.conflict_employment_types THEN 'employment_types' END,
+                CASE WHEN ga.conflict_work_modes THEN 'work_modes' END,
                 CASE WHEN ga.conflict_deadline THEN 'deadline' END
             ],
             NULL

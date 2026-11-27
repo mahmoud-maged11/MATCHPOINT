@@ -51,14 +51,14 @@ BEGIN
     IF v_cnt IS DISTINCT FROM 8 THEN RAISE EXCEPTION 'FAIL G1: Expected 8 sources in gold.mart_opportunities_by_source, got %', v_cnt; END IF;
     RAISE NOTICE 'PASS G1: All 8 Data Contract v3.0.0 sources represented in dim_sources and mart_opportunities_by_source';
 
-    -- 2. Canonical grain parity: 41 source listings -> 32 canonical opportunities
+    -- 2. Canonical grain parity: 41 source listings -> 33 canonical opportunities
     SELECT COUNT(*) INTO v_cnt FROM gold.fct_opportunities;
-    IF v_cnt IS DISTINCT FROM 32 THEN RAISE EXCEPTION 'FAIL G2: Expected 32 canonical opportunities in gold.fct_opportunities, got %', v_cnt; END IF;
+    IF v_cnt IS DISTINCT FROM 33 THEN RAISE EXCEPTION 'FAIL G2: Expected 33 canonical opportunities in gold.fct_opportunities, got %', v_cnt; END IF;
     SELECT COUNT(*) INTO v_cnt FROM gold.fct_opportunity_sources;
     IF v_cnt IS DISTINCT FROM 41 THEN RAISE EXCEPTION 'FAIL G2: Expected 41 source listings in gold.fct_opportunity_sources, got %', v_cnt; END IF;
     SELECT SUM(primary_canonical_opportunities) INTO v_cnt FROM gold.mart_opportunities_by_source;
-    IF v_cnt IS DISTINCT FROM 32 THEN RAISE EXCEPTION 'FAIL G2: mart_opportunities_by_source primary sum expected 32, got %', v_cnt; END IF;
-    RAISE NOTICE 'PASS G2: Canonical opportunity count parity (41 listings -> 32 canonical opportunities, zero double-counting)';
+    IF v_cnt IS DISTINCT FROM 33 THEN RAISE EXCEPTION 'FAIL G2: mart_opportunities_by_source primary sum expected 33, got %', v_cnt; END IF;
+    RAISE NOTICE 'PASS G2: Canonical opportunity count parity (41 listings -> 33 canonical opportunities, zero double-counting)';
 
     -- 3. Skill alias & canonical bridge deduplication:
     -- Scenario 1 has 'Python' on Wuzzuf AND 'py' on Egyincs (same canonical opportunity).
@@ -94,16 +94,16 @@ BEGIN
 
     -- 5. Location, Work Mode, Employment Type, and Lifecycle Trends marts populated and consistent
     SELECT SUM(canonical_opportunity_count) INTO v_cnt FROM gold.mart_opportunities_by_location;
-    IF v_cnt IS DISTINCT FROM 32 THEN RAISE EXCEPTION 'FAIL G5: Expected 32 opportunities across mart_opportunities_by_location, got %', v_cnt; END IF;
+    IF v_cnt IS DISTINCT FROM 33 THEN RAISE EXCEPTION 'FAIL G5: Expected 33 opportunities across mart_opportunities_by_location, got %', v_cnt; END IF;
     SELECT COUNT(*) INTO v_cnt FROM gold.mart_opportunities_by_work_mode;
     IF v_cnt = 0 THEN RAISE EXCEPTION 'FAIL G5: mart_opportunities_by_work_mode is empty'; END IF;
     SELECT COUNT(*) INTO v_cnt FROM gold.mart_opportunities_by_employment_type;
     IF v_cnt = 0 THEN RAISE EXCEPTION 'FAIL G5: mart_opportunities_by_employment_type is empty'; END IF;
     SELECT SUM(canonical_opportunity_count) INTO v_cnt FROM gold.mart_opportunity_lifecycle_trends;
-    IF v_cnt IS DISTINCT FROM 32 THEN RAISE EXCEPTION 'FAIL G5: Expected 32 opportunities with reliable published_at in mart_opportunity_lifecycle_trends, got %', v_cnt; END IF;
+    IF v_cnt IS DISTINCT FROM 33 THEN RAISE EXCEPTION 'FAIL G5: Expected 33 opportunities with reliable published_at in mart_opportunity_lifecycle_trends, got %', v_cnt; END IF;
     SELECT SUM(primary_active_opportunities + primary_expired_opportunities + primary_closed_opportunities + primary_unknown_opportunities)
     INTO v_cnt FROM gold.mart_opportunities_by_source;
-    IF v_cnt IS DISTINCT FROM 32 THEN RAISE EXCEPTION 'FAIL G5: Expected primary lifecycle breakdown sum=32, got %', v_cnt; END IF;
+    IF v_cnt IS DISTINCT FROM 33 THEN RAISE EXCEPTION 'FAIL G5: Expected primary lifecycle breakdown sum=33, got %', v_cnt; END IF;
     RAISE NOTICE 'PASS G5: Location, work_mode, employment_type, source primary lifecycle, and publication trend marts verified';
 
     -- 6. Collection run & invalid record telemetry in fct_collection_runs & mart_opportunities_by_source

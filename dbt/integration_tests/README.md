@@ -1,5 +1,32 @@
 # Phase 4 & Phase 5 Synthetic Integration Test Suite
 
+## Current Warehouse Validation
+
+The latest warehouse technical review was completed on
+2026-11-27.
+
+Current acceptance baseline:
+
+- 44 dbt models.
+- 483 passing dbt data tests.
+- 41 baseline listings and 33 canonical opportunities.
+- 52 expanded listings and 44 canonical opportunities.
+- All 52 expanded source mappings preserved.
+- Silver mapping idempotency passed.
+- All 20 Gold snapshot comparisons passed.
+- All eight supported sources represented.
+
+Earlier results of 461 tests, 32 baseline opportunities
+and 43 expanded opportunities are historical unless
+explicitly identified otherwise.
+
+See `dbt/docs/warehouse_review_2026_11_27.md` from the
+repository root for the complete technical review,
+current acceptance results and remaining limitations.
+
+Synthetic acceptance does not establish real-data ingestion
+or production readiness.
+
 ## 1. Purpose
 
 This directory contains executable PostgreSQL fixtures,
@@ -196,7 +223,7 @@ It validates:
 The enrichment preserves the baseline merge topology:
 
 - 41 Bronze source listings.
-- 32 canonical opportunities.
+- 33 canonical opportunities.
 
 Gold baseline verification covers:
 
@@ -231,7 +258,7 @@ The edge-case collection scope is `synthetic_phase5_edge`.
 The expanded dataset contains:
 
 - 52 Bronze source listings.
-- 43 canonical opportunities.
+- 44 canonical opportunities.
 - 12 collection runs.
 - All eight supported sources.
 
@@ -496,7 +523,7 @@ Invoke-IntegrationSql "verify_phase4_synthetic_results.sql"
 Expected:
 
 - 41 Bronze source listings.
-- 32 canonical opportunities.
+- 33 canonical opportunities.
 - 41 canonical source mappings.
 - 9 collection runs.
 - 2 Bronze history records.
@@ -547,7 +574,7 @@ Invoke-IntegrationSql "verify_phase5_gold_results.sql"
 Expected:
 
 - 41 Bronze source listings.
-- 32 canonical opportunities.
+- 33 canonical opportunities.
 - 1 invalid record.
 - All S1-S10 verification groups passed.
 - All G1-G6 verification groups passed.
@@ -566,7 +593,7 @@ Invoke-IntegrationSql "verify_phase5_edge_cases.sql"
 Expected:
 
 - 52 Bronze source listings.
-- 43 canonical opportunities.
+- 44 canonical opportunities.
 - 52 canonical source mappings.
 - 12 collection runs.
 - 1 invalid record.

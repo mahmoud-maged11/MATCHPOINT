@@ -26,9 +26,9 @@ BEGIN
     END IF;
 
     IF (SELECT COUNT(*) FROM gold.fct_opportunities)
-        IS DISTINCT FROM 43 THEN
+        IS DISTINCT FROM 44 THEN
         RAISE EXCEPTION
-            'FAIL PREFLIGHT: Expected 43 canonical opportunities';
+            'FAIL PREFLIGHT: Expected 44 canonical opportunities';
     END IF;
 
     IF (SELECT COUNT(*) FROM gold.fct_opportunity_sources)
@@ -112,9 +112,9 @@ BEGIN
     IF v_status IS DISTINCT FROM 'active' OR v_pub_key IS NOT NULL OR v_dl_key IS NOT NULL THEN
         RAISE EXCEPTION 'FAIL EC6: Relative dates violated precision guard (status=%, pub_key=%, dl_key=%)', v_status, v_pub_key, v_dl_key;
     END IF;
-    -- Total reliable published opportunities should be 43 - 1 = 42
+    -- Total reliable published opportunities should be 44 - 1 = 43
     SELECT SUM(canonical_opportunity_count) INTO v_cnt FROM gold.mart_opportunity_lifecycle_trends;
-    IF v_cnt IS DISTINCT FROM 42 THEN
+    IF v_cnt IS DISTINCT FROM 43 THEN
         RAISE EXCEPTION 'FAIL EC6: Expected 42 reliable published opportunities in lifecycle trends (excluding EC6 relative), got %', v_cnt;
     END IF;
     RAISE NOTICE 'PASS EC6: Relative dates nulled in date keys, excluded from trends, and not falsely expired';
@@ -133,8 +133,8 @@ BEGIN
         RAISE EXCEPTION 'FAIL EC7: Expected 1 unreported-location opportunity in mart_opportunities_by_location, got %', v_cnt;
     END IF;
     SELECT SUM(canonical_opportunity_count) INTO v_cnt FROM gold.mart_opportunities_by_location;
-    IF v_cnt IS DISTINCT FROM 43 THEN
-        RAISE EXCEPTION 'FAIL EC7: Expected mart_opportunities_by_location total=43 (100%% parity), got %', v_cnt;
+    IF v_cnt IS DISTINCT FROM 44 THEN
+        RAISE EXCEPTION 'FAIL EC7: Expected mart_opportunities_by_location total=44 (100%% parity), got %', v_cnt;
     END IF;
     RAISE NOTICE 'PASS EC7: NULL location preserved as NULL in fct_opportunities and surfaced as explicit unreported bucket in mart_opportunities_by_location';
 

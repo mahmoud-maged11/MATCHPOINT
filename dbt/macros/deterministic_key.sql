@@ -1,16 +1,25 @@
 {% macro deterministic_sha256_key(expressions) -%}
+
+    {%- if expressions | length == 0 -%}
+        {{ exceptions.raise_compiler_error(
+            "deterministic_sha256_key requires at least one expression"
+        ) }}
+    {%- endif -%}
+
     ENCODE(
         SHA256(
             CONVERT_TO(
-                CONCAT_WS(
-                    '|',
+                'matchpoint:surrogate_key:v2|' ||
+                JSONB_BUILD_ARRAY(
                     {%- for expr in expressions %}
-                    COALESCE(CAST({{ expr }} AS TEXT), '__NULL__'){% if not loop.last %},{% endif %}
+                    CAST({{ expr }} AS TEXT)
+                    {%- if not loop.last %},{% endif %}
                     {%- endfor %}
-                ),
+                )::TEXT,
                 'UTF8'
             )
         ),
         'hex'
     )
+
 {%- endmacro %}

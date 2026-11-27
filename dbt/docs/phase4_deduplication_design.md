@@ -1,5 +1,32 @@
 # Phase 4 Design Document: Cross-Source Deduplication & Canonical Opportunity Identity
 
+## Current Warehouse Validation
+
+The latest warehouse technical review was completed on
+2026-11-27.
+
+Current acceptance baseline:
+
+- 44 dbt models.
+- 483 passing dbt data tests.
+- 41 baseline listings and 33 canonical opportunities.
+- 52 expanded listings and 44 canonical opportunities.
+- All 52 expanded source mappings preserved.
+- Silver mapping idempotency passed.
+- All 20 Gold snapshot comparisons passed.
+- All eight supported sources represented.
+
+Earlier results of 461 tests, 32 baseline opportunities
+and 43 expanded opportunities are historical unless
+explicitly identified otherwise.
+
+See `dbt/docs/warehouse_review_2026_11_27.md` from the
+repository root for the complete technical review,
+current acceptance results and remaining limitations.
+
+Synthetic acceptance does not establish real-data ingestion
+or production readiness.
+
 This document specifies the Phase 4 Silver-layer deduplication and canonical identity design for **MATCHPOINT**, aligned with **Data Contract v3.0.0**, **ADR-003**, **ADR-004**, **ADR-018**, **ADR-026**, **ADR-042**, **ADR-043**, and **ADR-047**.
 
 ---

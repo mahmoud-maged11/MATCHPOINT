@@ -16,11 +16,14 @@ WITH expanded AS (
         o.opportunity_id,
         LOWER(BTRIM(elem.val)) AS employment_type
     FROM {{ ref('silver_opportunities') }} o
-    CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(o.employment_types) AS elem(val)
-    WHERE o.employment_types IS NOT NULL
-      AND JSONB_TYPEOF(o.employment_types) = 'array'
-      AND JSONB_ARRAY_LENGTH(o.employment_types) > 0
-      AND NULLIF(BTRIM(elem.val), '') IS NOT NULL
+    CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(
+        CASE
+            WHEN JSONB_TYPEOF(o.employment_types) = 'array'
+            THEN o.employment_types
+            ELSE '[]'::JSONB
+        END
+    ) AS elem(val)
+    WHERE NULLIF(BTRIM(elem.val), '') IS NOT NULL
 )
 
 SELECT

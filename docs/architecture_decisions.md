@@ -2038,3 +2038,40 @@ unchanged.
 
 Future breaking contract changes must follow the
 established contract versioning policy.
+
+## Warehouse Transformation Review Addendum
+
+**Date:** 2026-11-27
+
+**Status:** Implemented and synthetic-tested.
+
+The warehouse technical review hardened normalization,
+URL matching, source reference extraction, cluster
+consistency, canonical attribute selection, evidence
+preservation and analytical bridge construction.
+
+Derived surrogate keys now use structured JSON-array
+serialization to avoid ambiguous concatenation.
+
+Downstream derived-key tables must be rebuilt consistently.
+
+Canonical identities remain deterministic for unchanged
+matching inputs, not permanently stable across cluster
+membership changes.
+
+Conservative matching must prefer separate opportunities
+over unsupported merges.
+
+The current warehouse baseline is 44 dbt models and
+483 passing data tests, with 52 expanded source listings
+mapped to 44 canonical opportunities.
+
+The Bronze physical schema and approved Data Contract
+v3.0.0 remain unchanged.
+
+Persistent ingestion, real-data integration, lifecycle
+reconciliation and production acceptance remain pending.
+
+Detailed evidence and integration limitations:
+
+dbt/docs/warehouse_review_2026_11_27.md

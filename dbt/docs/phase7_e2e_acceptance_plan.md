@@ -1,5 +1,32 @@
 # Phase 7: Real Data Integration and End-to-End Acceptance Plan
 
+## Current Warehouse Validation
+
+The latest warehouse technical review was completed on
+2026-11-27.
+
+Current acceptance baseline:
+
+- 44 dbt models.
+- 483 passing dbt data tests.
+- 41 baseline listings and 33 canonical opportunities.
+- 52 expanded listings and 44 canonical opportunities.
+- All 52 expanded source mappings preserved.
+- Silver mapping idempotency passed.
+- All 20 Gold snapshot comparisons passed.
+- All eight supported sources represented.
+
+Earlier results of 461 tests, 32 baseline opportunities
+and 43 expanded opportunities are historical unless
+explicitly identified otherwise.
+
+See `dbt/docs/warehouse_review_2026_11_27.md` from the
+repository root for the complete technical review,
+current acceptance results and remaining limitations.
+
+Synthetic acceptance does not establish real-data ingestion
+or production readiness.
+
 **Project:** MATCHPOINT
 
 **Data Contract:** v3.0.0 (ADR-050)
@@ -1314,7 +1341,7 @@ production security mechanism.
 | E2E-05 | Observation ledger | Same-run retry and conflict validation | Pending ingestion |
 | E2E-06 | Content history | Atomic version progression and history preservation | Pending ingestion |
 | E2E-07 | Checkpoints | Safe advancement and failure recovery | Pending |
-| E2E-08 | Warehouse data quality | 461 tests on recorded real data | Synthetic pass only |
+| E2E-08 | Warehouse data quality | 483 tests on recorded real data | Synthetic pass only |
 | E2E-09 | Canonical consistency | Reviewed real deduplication evidence | Synthetic pass only |
 | E2E-10 | Source traceability | Complete real-data attribution and URL preservation | Synthetic pass only |
 | E2E-11 | Lifecycle | Controlled reopening and time-driven refresh | Partially validated |

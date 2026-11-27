@@ -281,3 +281,6 @@ Thumbs.db
 /data/devpost/
 
 /data/un_volunteers/
+
+# Local dbt Python environment
+/.venv312/

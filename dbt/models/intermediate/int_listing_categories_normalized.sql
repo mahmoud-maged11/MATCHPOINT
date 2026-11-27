@@ -6,12 +6,14 @@ WITH expanded AS (
         {{ normalize_lookup_key('elem.raw_category') }} AS category_lookup_key,
         elem.elem_pos
     FROM {{ ref('stg_bronze__source_listings') }} sl
-    CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(sl.categories)
-        WITH ORDINALITY AS elem(raw_category, elem_pos)
-    WHERE sl.categories IS NOT NULL
-      AND JSONB_TYPEOF(sl.categories) = 'array'
-      AND JSONB_ARRAY_LENGTH(sl.categories) > 0
-      AND {{ clean_text('elem.raw_category') }} IS NOT NULL
+    CROSS JOIN LATERAL JSONB_ARRAY_ELEMENTS_TEXT(
+        CASE
+            WHEN JSONB_TYPEOF(sl.categories) = 'array'
+                THEN sl.categories
+            ELSE '[]'::JSONB
+        END
+    ) WITH ORDINALITY AS elem(raw_category, elem_pos)
+    WHERE {{ clean_text('elem.raw_category') }} IS NOT NULL
 ),
 
 keyed AS (
@@ -25,7 +27,7 @@ keyed AS (
     FROM expanded ex
 ),
 
-deduplicated AS (
+ranked AS (
     SELECT
         k.*,
         ROW_NUMBER() OVER (
@@ -33,14 +35,32 @@ deduplicated AS (
             ORDER BY k.elem_pos ASC
         ) AS rn
     FROM keyed k
+),
+
+aggregated AS (
+    SELECT
+        source_listing_id,
+        category_key,
+        JSONB_AGG(
+            DISTINCT category_raw
+            ORDER BY category_raw
+        ) AS observed_raw_categories
+    FROM keyed
+    GROUP BY
+        source_listing_id,
+        category_key
 )
 
 SELECT
-    {{ deterministic_sha256_key(["source_listing_id", "category_key"]) }} AS listing_category_id,
-    source_listing_id,
-    source_name,
-    category_key,
-    category_name,
-    category_raw
-FROM deduplicated
-WHERE rn = 1
+    {{ deterministic_sha256_key(["r.source_listing_id", "r.category_key"]) }} AS listing_category_id,
+    r.source_listing_id,
+    r.source_name,
+    r.category_key,
+    r.category_name,
+    r.category_raw,
+    a.observed_raw_categories
+FROM ranked r
+INNER JOIN aggregated a
+    ON r.source_listing_id = a.source_listing_id
+   AND r.category_key = a.category_key
+WHERE r.rn = 1

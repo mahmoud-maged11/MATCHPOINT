@@ -14,11 +14,13 @@ WITH grouped AS (
     SELECT
         os.opportunity_id,
         lc.category_key,
-        MIN(lc.category_name) AS category_name,
+        MIN(c.category_name) AS category_name,
         COUNT(DISTINCT os.source_listing_id) AS supporting_source_count
     FROM {{ ref('silver_opportunity_sources') }} os
     INNER JOIN {{ ref('silver_listing_categories') }} lc
         ON os.source_listing_id = lc.source_listing_id
+    INNER JOIN {{ ref('silver_categories') }} c
+        ON lc.category_key = c.category_key
     GROUP BY
         os.opportunity_id,
         lc.category_key

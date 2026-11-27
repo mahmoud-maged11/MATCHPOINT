@@ -94,7 +94,7 @@ BEGIN
 
     RAISE NOTICE 'PASS S1: Exact cross-source URL matching and Bronze history preservation';
 
-    -- Scenario 2: Case-sensitive SharePoint URL path match
+    -- Scenario 2: Reject unverified SharePoint URL variants
     SELECT opportunity_id INTO v_opp_a
     FROM silver.silver_opportunity_sources
     WHERE source_listing_id = '22222222-2222-4222-8222-000000000201'::UUID;
@@ -105,11 +105,13 @@ BEGIN
 
     IF v_opp_a IS NULL
         OR v_opp_b IS NULL
-        OR v_opp_a IS DISTINCT FROM v_opp_b THEN
-        RAISE EXCEPTION 'FAIL S2: Mixed-case ITIDA SharePoint URL did not merge';
+        OR v_opp_a = v_opp_b THEN
+        RAISE EXCEPTION
+            'FAIL S2: Unverified URL variants merged or listings missing';
     END IF;
 
-    RAISE NOTICE 'PASS S2: Case-sensitive URL path matching';
+    RAISE NOTICE
+        'PASS S2: Unverified URL variants remain distinct';
 
     -- Scenario 3: Shared specific external application URL
     SELECT opportunity_id INTO v_opp_a
@@ -126,7 +128,22 @@ BEGIN
         RAISE EXCEPTION 'FAIL S3: Shared specific external URL pair did not merge';
     END IF;
 
-    RAISE NOTICE 'PASS S3: Shared external application URL matching';
+    SELECT COUNT(*) INTO v_cnt
+    FROM silver.int_opportunity_match_pairs
+    WHERE listing_id_low =
+        '22222222-2222-4222-8222-000000000301'::UUID
+      AND listing_id_high =
+        '22222222-2222-4222-8222-000000000302'::UUID
+      AND match_method = 'shared_external_application_url';
+
+    IF v_cnt <> 1 THEN
+        RAISE EXCEPTION
+            'FAIL S3: Expected exactly one shared external URL match, got %',
+            v_cnt;
+    END IF;
+
+    RAISE NOTICE
+        'PASS S3: Shared external application URL matching';
 
     -- Scenario 4: Tier 2 composite match (English vs Arabic Cairo)
     SELECT opportunity_id INTO v_opp_a

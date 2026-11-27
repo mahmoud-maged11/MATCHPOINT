@@ -2,7 +2,7 @@
 
 **Data Contract Version:** 3.0.0 (approved; ADR-050)
 
-**Last Updated:** 2026-11-26
+**Last Updated:** 2026-11-27
 
 ## Priority Definitions
 
@@ -443,29 +443,53 @@ as currently actionable opportunities without supporting evidence.
 
 - [ ] Review proposed Data Contract v3.0.0.
 - [x] Design and implement the physical Bronze schema.
-- [ ] Design Silver and Gold transformation models.
+- [x] Design Silver and Gold transformation models.
 - [x] Design and implement physical source listing tables.
 - [x] Design and implement content history and observation ledger tables.
 - [x] Design and implement the physical invalid record table.
 - [x] Create and validate seven initial database migrations.
-- [ ] Initialize dbt project.
-- [ ] Configure dbt source definitions.
-- [ ] Implement staging models.
-- [ ] Implement intermediate models.
-- [ ] Implement Gold marts.
-- [ ] Normalize organization names.
-- [ ] Normalize locations.
-- [ ] Normalize skills.
-- [ ] Normalize categories.
-- [ ] Implement source listing deduplication.
-- [ ] Implement cross-source deduplication.
-- [ ] Define matching evidence and thresholds.
-- [ ] Generate stable canonical opportunity IDs.
-- [ ] Preserve relationships between canonical opportunities and source listings.
-- [ ] Design fact and dimension tables.
-- [ ] Design skill bridge tables.
-- [ ] Implement data quality tests.
-- [ ] Document warehouse architecture.
+- [x] Initialize dbt project.
+- [x] Configure dbt source definitions.
+- [x] Implement staging models.
+- [x] Implement intermediate models.
+- [x] Implement Gold marts.
+- [x] Normalize organization names.
+- [x] Normalize locations.
+- [x] Normalize skills.
+- [x] Normalize categories.
+- [x] Implement warehouse-level source listing identity preservation.
+- [ ] Implement persistent ingestion-level retry deduplication.
+- [x] Implement cross-source deduplication.
+- [x] Define matching evidence and thresholds.
+- [x] Generate deterministic canonical IDs for unchanged matching inputs.
+- [ ] Implement persistent canonical identity reconciliation.
+- [x] Preserve relationships between canonical opportunities and source listings.
+- [x] Design fact and dimension tables.
+- [x] Design skill bridge tables.
+- [x] Implement data quality tests.
+- [x] Document warehouse architecture.
+
+### Warehouse Review Milestone
+
+**Status:** Implemented and synthetic-tested.
+
+- [x] Validate all 44 dbt models.
+- [x] Pass all 483 dbt data tests.
+- [x] Validate all eight supported sources using synthetic fixtures.
+- [x] Preserve all 52 expanded source mappings.
+- [x] Validate 44 expanded canonical opportunities.
+- [x] Pass Silver integration scenarios S1-S10.
+- [x] Pass Gold integration scenarios G1-G6.
+- [x] Pass edge cases EC1-EC11.
+- [x] Verify Silver mapping idempotency.
+- [x] Verify all 20 Gold snapshots.
+- [ ] Validate warehouse transformations on recorded real data.
+- [ ] Validate downstream derived-key compatibility.
+- [ ] Validate production-scale performance.
+- [ ] Complete Phase 7 end-to-end acceptance.
+- [ ] Communicate final warehouse handoff to affected team members.
+
+See dbt/docs/warehouse_review_2026_11_27.md.
 
 ## 8. Pipeline and Orchestration
 
@@ -1156,22 +1180,25 @@ They do not establish complete ingestion correctness.
 
 **Priority:** P1
 
-- [ ] Initialize dbt project.
-- [ ] Configure Bronze source definitions.
-- [ ] Implement Silver staging models.
-- [ ] Normalize organizations, locations and skills.
-- [ ] Implement effective opportunity status.
-- [ ] Validate reliable deadline expiration.
-- [ ] Handle date-only and uncertain deadlines.
-- [ ] Preserve explicit closure and expiration evidence.
+- [x] Initialize dbt project.
+- [x] Configure Bronze source definitions.
+- [x] Implement Silver staging models.
+- [x] Normalize organizations, locations and skills.
+- [x] Implement effective opportunity status.
+- [x] Validate reliable deadline expiration.
+- [x] Handle date-only and uncertain deadlines.
+- [x] Preserve explicit closure and expiration evidence.
 - [ ] Prevent closure inference from bounded-run absence.
 - [ ] Validate reopened opportunities.
 - [ ] Define lifecycle revalidation schedules.
 - [ ] Define time-dependent transformation freshness.
-- [ ] Implement canonical opportunity identities.
-- [ ] Implement evidence-based cross-source deduplication.
-- [ ] Implement Gold facts, dimensions and bridge tables.
-- [ ] Implement dbt data quality tests.
+- [x] Implement canonical opportunity identities.
+- [x] Implement evidence-based cross-source deduplication.
+- [x] Implement Gold facts, dimensions and bridge tables.
+- [x] Implement dbt data quality tests.
+
+Completed transformation tasks are verified on synthetic data only.
+Operational lifecycle reconciliation and real-data integration remain pending.
 
 ### Deferred: Incremental Collection
 
@@ -1264,8 +1291,8 @@ and locally tested.
 
 Persistent Python ingestion is not yet implemented.
 
-Silver and Gold schemas exist, but their transformation
-models and analytical tables remain pending.
+Silver and Gold transformations are implemented and
+synthetic-tested. Real-data integration remains pending.
 
 Incremental collection is not activated.
 

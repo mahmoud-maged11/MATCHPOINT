@@ -101,7 +101,7 @@ VALUES
      REPEAT('2', 64), 1, 1, '11111111-1111-4111-8111-000000000003'::UUID,
      '{"scenario": "s1_direct_url", "application_url": "https://wuzzuf.net/jobs/p/synS1W-data-engineer-cairo"}'::JSONB),
 
-    -- SCENARIO 2: Case-sensitive URL path match (Fix 1: ITIDA SharePoint mixed-case path)
+    -- SCENARIO 2: Unverified URL variants must remain distinct
     ('22222222-2222-4222-8222-000000000201'::UUID, 'itida', 'program:tiec-track', 'id:program:tiec-track',
      'https://itida.gov.eg/english/programs/pages/tiec-track.aspx',
      'TIEC Innovation Track', 'ITIDA', 'training', 'Smart Village, Egypt', '["hybrid"]'::JSONB, NULL,
@@ -136,7 +136,7 @@ VALUES
      '2026-11-06T00:00:00Z', '2026-11-06', 'date_only',
      'active', '2026-11-20T08:01:00Z', '2026-11-06T08:00:00Z', '2026-11-20T08:01:00Z',
      REPEAT('6', 64), 1, 1, '11111111-1111-4111-8111-000000000006'::UUID,
-     '{"scenario": "s3_shared_url", "application_url": "https://www.careers.acme-egypt.com/openings/backend-2026?reqId=AbC42"}'::JSONB),
+     '{"scenario": "s3_shared_url", "application_url": "https://CAREERS.acme-egypt.com/Openings/Backend-2026?reqId=AbC42"}'::JSONB),
 
     -- SCENARIO 4: Tier 2 composite match (English vs Arabic Cairo, compatible work_modes, 5d apart)
     ('22222222-2222-4222-8222-000000000401'::UUID, 'wuzzuf', 'syn-s4-w', 'id:syn-s4-w',

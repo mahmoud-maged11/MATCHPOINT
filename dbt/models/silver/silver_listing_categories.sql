@@ -4,6 +4,6 @@ SELECT
     source_name,
     category_key,
     category_name,
-    category_raw
-
+    category_raw,
+    observed_raw_categories
 FROM {{ ref('int_listing_categories_normalized') }}

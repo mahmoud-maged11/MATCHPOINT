@@ -70,15 +70,7 @@ WITH staged AS (
     FROM {{ ref('stg_bronze__source_listings') }}
 ),
 
-location_tokens AS (
-    SELECT
-        s.*,
-        -- Normalize Arabic comma to ASCII comma solely for token lookup without altering location_raw
-        {{ normalize_lookup_key("SPLIT_PART(REPLACE(s.location_cleaned, '،', ','), ',', 1)") }} AS loc_token_1,
-        {{ normalize_lookup_key("SPLIT_PART(REPLACE(s.location_cleaned, '،', ','), ',', 2)") }} AS loc_token_2,
-        {{ normalize_lookup_key("SPLIT_PART(REPLACE(s.location_cleaned, '،', ','), ',', 3)") }} AS loc_token_3
-    FROM staged s
-),
+{{ resolve_listing_locations('staged', ref('location_mappings')) }}
 
 enriched AS (
     SELECT
@@ -99,45 +91,23 @@ enriched AS (
         lt.description_cleaned AS description,
         lt.opportunity_type,
 
-        -- Opportunity location standardization via explicit location seed
+        -- Use one consistent geographic mapping row.
+        -- Unresolved locations retain their original text.
         lt.location_raw,
         lt.location_cleaned,
+
+        lr.standardized_city,
+        lr.standardized_governorate,
+        lr.standardized_country,
+        lr.country_code,
+
         COALESCE(
-            loc_full.standardized_city,
-            loc_t1.standardized_city,
-            loc_t2.standardized_city,
-            loc_t3.standardized_city
-        ) AS standardized_city,
-        COALESCE(
-            loc_full.standardized_governorate,
-            loc_t1.standardized_governorate,
-            loc_t2.standardized_governorate,
-            loc_t3.standardized_governorate
-        ) AS standardized_governorate,
-        COALESCE(
-            loc_full.standardized_country,
-            loc_t1.standardized_country,
-            loc_t2.standardized_country,
-            loc_t3.standardized_country
-        ) AS standardized_country,
-        COALESCE(
-            loc_full.country_code,
-            loc_t1.country_code,
-            loc_t2.country_code,
-            loc_t3.country_code
-        ) AS country_code,
-        COALESCE(
-            loc_full.is_online_location_label,
-            loc_t1.is_online_location_label,
-            loc_t2.is_online_location_label,
-            loc_t3.is_online_location_label,
+            lr.is_online_location_label,
             FALSE
         ) AS is_online_location_label,
+
         (
-            loc_full.raw_location_normalized IS NOT NULL
-            OR loc_t1.raw_location_normalized IS NOT NULL
-            OR loc_t2.raw_location_normalized IS NOT NULL
-            OR loc_t3.raw_location_normalized IS NOT NULL
+            lr.source_listing_id IS NOT NULL
         ) AS is_location_standardized,
 
         lt.applicant_eligibility_raw,
@@ -244,17 +214,13 @@ enriched AS (
         lt.last_collection_run_id,
         lt.raw_payload
 
-    FROM location_tokens lt
+    FROM staged lt
+
     LEFT JOIN {{ ref('organization_aliases') }} oa
         ON lt.organization_lookup_key = oa.raw_alias_normalized
-    LEFT JOIN {{ ref('location_mappings') }} loc_full
-        ON lt.location_lookup_key = loc_full.raw_location_normalized
-    LEFT JOIN {{ ref('location_mappings') }} loc_t1
-        ON lt.loc_token_1 = loc_t1.raw_location_normalized
-    LEFT JOIN {{ ref('location_mappings') }} loc_t2
-        ON lt.loc_token_2 = loc_t2.raw_location_normalized
-    LEFT JOIN {{ ref('location_mappings') }} loc_t3
-        ON lt.loc_token_3 = loc_t3.raw_location_normalized
+
+    LEFT JOIN location_resolved lr
+        ON lt.source_listing_id = lr.source_listing_id
 )
 
 SELECT

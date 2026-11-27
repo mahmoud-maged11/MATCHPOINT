@@ -8,6 +8,6 @@ SELECT
     skill_group,
     is_alias_mapped,
     skill_source_type,
-    is_candidate_skill
-
+    is_candidate_skill,
+    observed_raw_skills
 FROM {{ ref('int_listing_skills_normalized') }}

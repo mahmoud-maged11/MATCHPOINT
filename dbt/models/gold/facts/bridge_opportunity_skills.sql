@@ -16,8 +16,8 @@ WITH grouped AS (
     SELECT
         os.opportunity_id,
         ls.skill_key,
-        MIN(ls.skill_name) AS skill_name,
-        MIN(ls.skill_group) AS skill_group,
+        MIN(s.skill_name) AS skill_name,
+        MIN(s.skill_group) AS skill_group,
         BOOL_OR(ls.is_alias_mapped) AS is_alias_mapped,
         CASE
             WHEN BOOL_OR(ls.skill_source_type = 'explicit_source_tag') THEN 'explicit_source_tag'
@@ -28,6 +28,8 @@ WITH grouped AS (
     FROM {{ ref('silver_opportunity_sources') }} os
     INNER JOIN {{ ref('silver_listing_skills') }} ls
         ON os.source_listing_id = ls.source_listing_id
+    INNER JOIN {{ ref('silver_skills') }} s
+        ON ls.skill_key = s.skill_key
     GROUP BY
         os.opportunity_id,
         ls.skill_key

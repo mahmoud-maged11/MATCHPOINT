@@ -173,7 +173,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: [1]
+                values: ["{{ var('supported_hash_version') }}"]
                 quote: false
       - name: content_version
         data_tests:
@@ -251,6 +251,10 @@ models:
       - name: source_listing_count
         data_tests:
           - not_null
+      - name: observed_raw_skills
+        description: "Distinct cleaned source skill tags retained after alias normalization and deduplication."
+        data_tests:
+          - not_null
 
   - name: silver_categories
     description: >
@@ -264,6 +268,10 @@ models:
         data_tests:
           - not_null
       - name: source_listing_count
+        data_tests:
+          - not_null
+      - name: observed_raw_categories
+        description: "Distinct cleaned source category tags retained after normalization and deduplication."
         data_tests:
           - not_null
 
@@ -300,6 +308,10 @@ models:
           - accepted_values:
               arguments:
                 values: [explicit_source_tag, extracted]
+      - name: observed_raw_skills
+        description: "Distinct cleaned source skill tags retained after alias normalization and deduplication."
+        data_tests:
+          - not_null
 
   - name: silver_listing_categories
     description: "Normalized relational mapping between silver_source_listings and silver_categories."
@@ -326,6 +338,10 @@ models:
         data_tests:
           - not_null
       - name: category_raw
+        data_tests:
+          - not_null
+      - name: observed_raw_categories
+        description: "Distinct cleaned source category tags retained after normalization and deduplication."
         data_tests:
           - not_null
 
