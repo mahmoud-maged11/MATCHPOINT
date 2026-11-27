@@ -1,0 +1,37 @@
+portal_pattern,match_scope,exclusion_reason
+wuzzuf.net,host_root_only,Generic supported source homepage without listing identifier
+forasna.com,host_root_only,Generic supported source homepage without listing identifier
+egyincs.com,host_root_only,Generic supported source homepage without listing identifier
+itida.gov.eg,host_root_only,Generic supported source homepage without listing identifier
+nti.sci.eg,host_root_only,Generic supported source homepage without listing identifier
+bayt.com,host_root_only,Generic supported source homepage without listing identifier
+devpost.com,host_root_only,Generic supported source homepage without listing identifier
+app.unv.org,host_root_only,Generic supported source homepage without listing identifier
+linkedin.com,host_any_generic_portal,Generic social/career portal excluded from automatic cross-source URL merging
+facebook.com,host_any_generic_portal,Generic social media link excluded from strong URL matching
+instagram.com,host_any_generic_portal,Generic social media link excluded from strong URL matching
+t.me,host_any_generic_portal,Generic messaging channel link excluded from strong URL matching
+wa.me,host_any_generic_portal,Generic WhatsApp redirect excluded from strong URL matching
+bit.ly,host_any_generic_portal,Opaque URL shortener excluded from strong URL matching
+tinyurl.com,host_any_generic_portal,Opaque URL shortener excluded from strong URL matching
+forms.gle,host_root_only,Generic form shortener root without specific form identifier
+docs.google.com/forms,path_prefix_generic,Generic Google Forms endpoint often reused across cohorts
+linktr.ee,host_any_generic_portal,Generic link aggregator page excluded from strong URL matching
+wuzzuf.net/jobs,path_exact_generic,Generic Wuzzuf jobs directory without listing identifier
+wuzzuf.net/jobs/egypt,path_prefix_generic,Generic Wuzzuf Egypt job listing search page
+wuzzuf.net/search/jobs,path_prefix_generic,Generic Wuzzuf search results URL
+forasna.com/jobs,path_exact_generic,Generic Forasna jobs directory without listing identifier
+forasna.com/search,path_prefix_generic,Generic Forasna search results URL
+bayt.com/en/egypt/jobs,path_exact_generic,Generic Bayt Egypt English jobs directory
+bayt.com/ar/egypt/jobs,path_exact_generic,Generic Bayt Egypt Arabic jobs directory
+egyincs.com/jobs,path_exact_generic,Generic Egyincs jobs directory
+egyincs.com/courses,path_exact_generic,Generic Egyincs courses directory
+nti.sci.eg/ereg,path_prefix_generic,Generic NTI registration portal shared across multiple tracks
+nti.sci.eg/register,path_prefix_generic,Generic NTI registration page shared across tracks
+itida.gov.eg/english/programs,path_exact_generic,Generic ITIDA programs index page
+itida.gov.eg/english/events,path_exact_generic,Generic ITIDA events index page
+devpost.com/hackathons,path_exact_generic,Generic Devpost hackathons directory
+app.unv.org/opportunities,path_exact_generic,Generic UN Volunteers opportunities directory
+jobs.lever.co,host_root_only,Generic Lever ATS portal root
+boards.greenhouse.io,host_root_only,Generic Greenhouse ATS portal root
+apply.workable.com,host_root_only,Generic Workable ATS portal root

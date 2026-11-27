@@ -1,0 +1,40 @@
+name: "matchpoint"
+version: "1.0.0"
+config-version: 2
+
+profile: "matchpoint"
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+vars:
+  contract_version: "3.0.0"
+  supported_hash_version: 1
+
+models:
+  matchpoint:
+    # Staging and intermediate models materialize in the existing `silver` schema
+    # so dbt stays strictly within the approved Medallion schemas (bronze, silver, gold).
+    staging:
+      +schema: silver
+      +materialized: view
+    intermediate:
+      +schema: silver
+      +materialized: view
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
+
+seeds:
+  matchpoint:
+    +schema: silver

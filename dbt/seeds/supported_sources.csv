@@ -1,0 +1,9 @@
+source_name,source_display_name,source_authority_rank,collection_approach
+itida,ITIDA,1,sharepoint_html_aspnet
+nti,NTI,2,html_dynamic_course_discovery
+un_volunteers,UN Volunteers,3,json_api_search_and_details
+devpost,Devpost,4,api_and_html_enrichment
+wuzzuf,Wuzzuf,5,api
+forasna,Forasna,6,html_and_json_ld
+bayt,Bayt,7,html_and_json_ld
+egyincs,Egyincs,8,wordpress_rest_api

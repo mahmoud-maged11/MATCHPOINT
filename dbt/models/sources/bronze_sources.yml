@@ -1,0 +1,271 @@
+version: 2
+
+sources:
+  - name: bronze
+    schema: bronze
+    description: >
+      Approved physical PostgreSQL 16 Bronze layer for MATCHPOINT (Data Contract v3.0.0;
+      ADR-041 through ADR-050). Preserves standardized source records, content history,
+      observation ledger entries, invalid records, collection runs, and incremental checkpoints
+      created by database/migrations/001 through 007. Persistent Python ingestion into these
+      tables is owned by the Data Collection component and remains pending.
+
+    tables:
+      - name: collection_runs
+        description: >
+          Execution metadata and processing counters for each source collection run
+          (migration 002; 18 columns; PK: run_id). Source freshness uses started_at to
+          monitor collection run activity only and does not prove source publication or
+          listing closure. Freshness thresholds are provisional pending Airflow schedule confirmation.
+        loaded_at_field: started_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 72, period: hour}
+        columns:
+          - name: run_id
+            description: "Primary key UUID identifying a logical collection run."
+          - name: source_name
+            description: "Supported source identifier (wuzzuf, forasna, egyincs, itida, nti, bayt, devpost, un_volunteers)."
+          - name: collection_scope
+            description: "Non-empty collection scope within a source (default: 'default'; supports multi-endpoint sources such as Egyincs)."
+          - name: collection_mode
+            description: "Execution mode used for the run (api, html, live)."
+          - name: status
+            description: "Run lifecycle status (running, completed, partial, failed, aborted)."
+          - name: started_at
+            description: "TIMESTAMPTZ when the collection run started (NOT NULL, default NOW())."
+          - name: finished_at
+            description: "TIMESTAMPTZ when the collection run ended; NULL while running, NOT NULL and >= started_at otherwise."
+          - name: records_received
+            description: "Non-negative count of records received during the run."
+          - name: records_inserted
+            description: "Non-negative count of newly inserted source listings."
+          - name: records_updated
+            description: "Non-negative count of source listings with accepted content updates."
+          - name: records_unchanged
+            description: "Non-negative count of newer unchanged observations."
+          - name: records_invalid
+            description: "Non-negative count of rejected records."
+          - name: records_stale
+            description: "Non-negative count of stale observations older than current listing state."
+          - name: records_conflicted
+            description: "Non-negative count of conflicting observations."
+          - name: contract_version
+            description: "Data Contract version active for the collection run (e.g. 3.0.0)."
+          - name: hash_version
+            description: "Content hashing algorithm version enforced as 1 in the initial Bronze schema (ADR-045)."
+          - name: error_message
+            description: "Optional run-level error summary when a run fails or aborts."
+          - name: metadata
+            description: "JSONB object storing permitted run-level metadata (default '{}')."
+
+      - name: source_listings
+        description: >
+          Latest accepted standardized source listings across all eight sources
+          (migration 003; 42 columns; PK: source_listing_id; UNIQUE: source_name, source_identity_key;
+          FK: last_collection_run_id -> bronze.collection_runs.run_id).
+          Source freshness uses last_seen_at (which equals collected_at under chk_listing_seen_dates)
+          to monitor observation recency only; it does not establish source publication time or
+          imply closure when a listing is absent from bounded runs (ADR-022, ADR-047).
+        loaded_at_field: last_seen_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 72, period: hour}
+        columns:
+          - name: source_listing_id
+            description: "Primary key stable UUID generated on initial source listing insert (ADR-042)."
+          - name: source_name
+            description: "Supported source identifier."
+          - name: source_opportunity_id
+            description: "Non-empty source-provided listing identifier required for initial Bronze admission (ADR-042)."
+          - name: source_identity_key
+            description: "Deterministic source identity key constrained to 'id:' || source_opportunity_id."
+          - name: source_url
+            description: "Non-empty original public listing URL preserved for source attribution."
+          - name: title
+            description: "Non-empty standardized opportunity title."
+          - name: organization
+            description: "Offering organization name, or NULL when hidden or unavailable."
+          - name: description
+            description: "Opportunity description text, or NULL when unavailable."
+          - name: opportunity_type
+            description: "Standardized opportunity type (job, internship, graduate_program, training, scholarship, competition, hackathon, freelance, volunteering, event)."
+          - name: location
+            description: "Source-provided location text, or NULL when unavailable."
+          - name: work_modes
+            description: "JSONB array of standardized work modes (on_site, remote, hybrid, unknown), or NULL when unavailable."
+          - name: employment_types
+            description: "JSONB array of standardized employment types (full_time, part_time, contract, temporary, freelance, unknown), or NULL when unavailable."
+          - name: categories
+            description: "JSONB array of opportunity categories, or NULL when unavailable."
+          - name: experience_level
+            description: "Standardized experience level (entry_level, junior, mid_level, senior, lead, manager, executive, unknown), or NULL."
+          - name: experience_level_raw
+            description: "Original source experience label preserved without fabrication."
+          - name: experience_years_min
+            description: "Non-negative minimum required experience years (<= experience_years_max when both present)."
+          - name: experience_years_max
+            description: "Non-negative maximum required experience years."
+          - name: education_level
+            description: "Education requirement text, or NULL when unavailable."
+          - name: required_skills
+            description: "JSONB array of candidate skill tags from the source, or NULL when unavailable (ADR-007)."
+          - name: requirements
+            description: "Free-text qualifications and eligibility requirements."
+          - name: salary_min
+            description: "Non-negative disclosed minimum salary (<= salary_max when both present)."
+          - name: salary_max
+            description: "Non-negative disclosed maximum salary."
+          - name: currency
+            description: "Three-letter uppercase ISO 4217 currency code, or NULL when unavailable."
+          - name: salary_period
+            description: "Standardized salary period (hourly, daily, weekly, monthly, yearly, project, unknown), or NULL."
+          - name: published_at
+            description: "Normalized UTC publication TIMESTAMPTZ when reliable, or NULL."
+          - name: published_at_raw
+            description: "Original source publication date string."
+          - name: published_at_precision
+            description: "Precision of published_at (exact, date_only, relative, unknown), or NULL."
+          - name: deadline
+            description: "Normalized UTC deadline TIMESTAMPTZ when reliable, or NULL."
+          - name: deadline_raw
+            description: "Original source deadline string."
+          - name: deadline_precision
+            description: "Precision of deadline (exact, date_only, relative, unknown), or NULL."
+          - name: status
+            description: "Observed opportunity status at collection time (active, expired, closed, unknown; ADR-047)."
+          - name: source_status_raw
+            description: "Original source status label preserved prior to normalization."
+          - name: collected_at
+            description: "TIMESTAMPTZ of the latest accepted observation (equals last_seen_at)."
+          - name: first_seen_at
+            description: "TIMESTAMPTZ of the initial accepted observation (<= collected_at)."
+          - name: last_seen_at
+            description: "TIMESTAMPTZ of the latest accepted observation (equals collected_at)."
+          - name: created_at
+            description: "Database storage row creation TIMESTAMPTZ."
+          - name: updated_at
+            description: "Database storage row modification TIMESTAMPTZ (>= created_at)."
+          - name: content_hash
+            description: "64-character lowercase hexadecimal SHA-256 hash of normalized opportunity content."
+          - name: hash_version
+            description: "Content hashing algorithm version enforced as 1 in the initial Bronze schema."
+          - name: content_version
+            description: "Positive integer content revision counter incremented only on standardized content changes."
+          - name: last_collection_run_id
+            description: "Foreign key UUID referencing bronze.collection_runs.run_id for the latest accepted observation."
+          - name: raw_payload
+            description: "JSONB object containing the latest permitted source evidence retained by the adapter."
+
+      - name: source_listing_history
+        description: >
+          Immutable content-version snapshots for accepted source listings
+          (migration 004; 10 columns; PK: history_id; UNIQUE: (source_listing_id, content_version)
+          and (source_listing_id, collection_run_id); FKs to bronze.source_listings and
+          bronze.collection_runs). Source freshness is intentionally omitted because rows are
+          created only on initial insertion or normalized content changes (ADR-043); healthy runs
+          with unchanged listings legitimately produce no new history rows.
+        columns:
+          - name: history_id
+            description: "Primary key UUID for the content history snapshot."
+          - name: source_listing_id
+            description: "Foreign key UUID referencing bronze.source_listings.source_listing_id."
+          - name: content_version
+            description: "Positive integer content revision number (supports A-to-B-to-A history sequences)."
+          - name: content_hash
+            description: "64-character lowercase hexadecimal SHA-256 hash for this content version."
+          - name: hash_version
+            description: "Content hashing algorithm version used to produce content_hash (enforced as 1)."
+          - name: contract_version
+            description: "Non-empty Data Contract version active when this snapshot was recorded."
+          - name: collection_run_id
+            description: "Foreign key UUID referencing bronze.collection_runs.run_id."
+          - name: standardized_payload
+            description: "JSONB object storing the full standardized snapshot and permitted payload for this version."
+          - name: observed_at
+            description: "TIMESTAMPTZ when this content version was observed."
+          - name: created_at
+            description: "Database storage row creation TIMESTAMPTZ."
+
+      - name: ingestion_observations
+        description: >
+          Lightweight idempotency ledger recording one processing outcome per source listing
+          and logical collection run (migration 005; 6 columns; Composite PK:
+          (source_listing_id, collection_run_id); FKs to bronze.source_listings and
+          bronze.collection_runs; ADR-044). Source freshness uses processed_at because every
+          processed observation (including unchanged runs) records a ledger entry.
+        loaded_at_field: processed_at
+        freshness:
+          warn_after: {count: 24, period: hour}
+          error_after: {count: 72, period: hour}
+        columns:
+          - name: source_listing_id
+            description: "Composite PK part 1 and FK referencing bronze.source_listings.source_listing_id."
+          - name: collection_run_id
+            description: "Composite PK part 2 and FK referencing bronze.collection_runs.run_id."
+          - name: observation_hash
+            description: "64-character lowercase hexadecimal SHA-256 hash distinguishing identical retries from conflicting observations."
+          - name: observed_at
+            description: "Original observation TIMESTAMPTZ preserved across retries."
+          - name: outcome
+            description: "Recorded processing outcome (inserted, updated, unchanged, stale, conflicted)."
+          - name: processed_at
+            description: "TIMESTAMPTZ when ingestion persisted this observation ledger row."
+
+      - name: invalid_records
+        description: >
+          Retained rejected records and ingestion conflicts separated from accepted listings
+          (migration 006; 12 columns; PK: invalid_record_id; UNIQUE: (collection_run_id, rejection_hash);
+          FK: collection_run_id -> bronze.collection_runs.run_id; ADR-046). Source freshness is
+          intentionally omitted because zero new invalid records is the desired healthy state
+          and observed_at is nullable.
+        columns:
+          - name: invalid_record_id
+            description: "Primary key UUID identifying a persisted rejection record."
+          - name: collection_run_id
+            description: "Foreign key UUID referencing bronze.collection_runs.run_id."
+          - name: source_opportunity_id
+            description: "Optional source listing identifier when available prior to failure."
+          - name: source_url
+            description: "Optional source listing URL when available prior to failure."
+          - name: failure_stage
+            description: "Pipeline stage where rejection occurred (extraction, mapping, validation, identity, ingestion)."
+          - name: error_code
+            description: "Non-empty machine-readable rejection error code."
+          - name: error_message
+            description: "Non-empty human-readable rejection diagnostic message."
+          - name: error_details
+            description: "JSONB object storing sanitized structured error diagnostics (default '{}')."
+          - name: record_payload
+            description: "Optional JSONB rejected payload (may be non-object or NULL; sanitized of sensitive data)."
+          - name: rejection_hash
+            description: "64-character lowercase hexadecimal SHA-256 hash preventing duplicate rejections within the same run."
+          - name: observed_at
+            description: "Optional observation TIMESTAMPTZ when available."
+          - name: created_at
+            description: "Database storage row creation TIMESTAMPTZ."
+
+      - name: source_checkpoints
+        description: >
+          Persistent incremental collection state per source and collection scope
+          (migration 007; 8 columns; PK: checkpoint_id; UNIQUE: (source_name, collection_scope);
+          FK: last_successful_run_id -> bronze.collection_runs.run_id; ADR-048). Source freshness
+          is intentionally omitted because incremental collection is deferred and not activated
+          in the initial implementation.
+        columns:
+          - name: checkpoint_id
+            description: "Primary key UUID identifying a checkpoint row."
+          - name: source_name
+            description: "Supported source identifier."
+          - name: collection_scope
+            description: "Non-empty collection scope within the source (default: 'default')."
+          - name: checkpoint_type
+            description: "Supported checkpoint representation (timestamp, cursor, numeric_id, page_number, composite)."
+          - name: checkpoint_value
+            description: "Non-empty JSONB object storing the structured checkpoint state."
+          - name: last_successful_run_id
+            description: "Foreign key UUID referencing the last successful bronze.collection_runs.run_id."
+          - name: created_at
+            description: "Database storage row creation TIMESTAMPTZ."
+          - name: updated_at
+            description: "Database storage row modification TIMESTAMPTZ (>= created_at)."

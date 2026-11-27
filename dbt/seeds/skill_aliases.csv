@@ -1,0 +1,72 @@
+raw_skill_normalized,standardized_skill_name,skill_group
+python,Python,programming_language
+python3,Python,programming_language
+py,Python,programming_language
+sql,SQL,data_and_database
+postgresql,PostgreSQL,data_and_database
+postgres,PostgreSQL,data_and_database
+mysql,MySQL,data_and_database
+mssql,Microsoft SQL Server,data_and_database
+ms sql,Microsoft SQL Server,data_and_database
+sql server,Microsoft SQL Server,data_and_database
+microsoft sql server,Microsoft SQL Server,data_and_database
+javascript,JavaScript,programming_language
+js,JavaScript,programming_language
+typescript,TypeScript,programming_language
+ts,TypeScript,programming_language
+java,Java,programming_language
+c#,C#,programming_language
+csharp,C#,programming_language
+c++,C++,programming_language
+cpp,C++,programming_language
+.net,.NET,framework
+dotnet,.NET,framework
+react,React,framework
+reactjs,React,framework
+react.js,React,framework
+node.js,Node.js,runtime
+nodejs,Node.js,runtime
+node,Node.js,runtime
+next.js,Next.js,framework
+nextjs,Next.js,framework
+fastapi,FastAPI,framework
+django,Django,framework
+flask,Flask,framework
+html,HTML,web
+html5,HTML,web
+css,CSS,web
+css3,CSS,web
+dbt,dbt,data_engineering
+airflow,Apache Airflow,data_engineering
+apache airflow,Apache Airflow,data_engineering
+spark,Apache Spark,data_engineering
+apache spark,Apache Spark,data_engineering
+clickhouse,ClickHouse,data_and_database
+power bi,Power BI,analytics_and_bi
+powerbi,Power BI,analytics_and_bi
+ms power bi,Power BI,analytics_and_bi
+microsoft power bi,Power BI,analytics_and_bi
+tableau,Tableau,analytics_and_bi
+excel,Microsoft Excel,analytics_and_bi
+ms excel,Microsoft Excel,analytics_and_bi
+microsoft excel,Microsoft Excel,analytics_and_bi
+machine learning,Machine Learning,ai_and_ml
+ml,Machine Learning,ai_and_ml
+deep learning,Deep Learning,ai_and_ml
+dl,Deep Learning,ai_and_ml
+artificial intelligence,Artificial Intelligence,ai_and_ml
+ai,Artificial Intelligence,ai_and_ml
+docker,Docker,devops_and_cloud
+kubernetes,Kubernetes,devops_and_cloud
+k8s,Kubernetes,devops_and_cloud
+git,Git,developer_tools
+linux,Linux,systems
+aws,AWS,devops_and_cloud
+amazon web services,AWS,devops_and_cloud
+gcp,Google Cloud,devops_and_cloud
+google cloud,Google Cloud,devops_and_cloud
+google cloud platform,Google Cloud,devops_and_cloud
+azure,Microsoft Azure,devops_and_cloud
+microsoft azure,Microsoft Azure,devops_and_cloud
+figma,Figma,design
+ccna,CCNA,networking
