@@ -1,7 +1,7 @@
 -- MATCHPOINT Phase 5 Gold Synthetic Enrichment Loader (ISOLATED TEST DATABASE ONLY)
 --
 -- PURPOSE:
---   Enriches existing synthetic Phase 4 Bronze records in `matchpoint_test` with
+--   Enriches existing synthetic Phase 4 Bronze records in an authorized test database with
 --   skills (including cross-source aliases like 'Python' + 'py' across a merged pair),
 --   categories, and one synthetic invalid_records row so EVERY Gold dimension, bridge,
 --   fact, and mart (including dim_skills, dim_categories, bridge_opportunity_skills,
@@ -13,11 +13,74 @@ BEGIN;
 
 DO $$
 BEGIN
-    IF current_database() NOT ILIKE '%test%' THEN
-        RAISE EXCEPTION 'SAFETY ABORT: Must only run on an isolated test database (current_database = %).', current_database();
+    IF current_setting('matchpoint.expected_test_database', TRUE) IS NULL
+       OR current_setting('matchpoint.expected_test_database', TRUE) NOT IN (
+           'matchpoint_test',
+           'matchpoint_dbt_review_test'
+       )
+       OR current_database() IS DISTINCT FROM
+           current_setting('matchpoint.expected_test_database', TRUE) THEN
+        RAISE EXCEPTION
+            'SAFETY ABORT: Expected authorized test database %, connected to %',
+            current_setting('matchpoint.expected_test_database', TRUE),
+            current_database();
     END IF;
+
+    RAISE NOTICE
+        'PASS SAFETY GUARD: Connected to %',
+        current_database();
 END;
 $$;
+
+-- Validate the synthetic baseline before modifying fixtures.
+DO $$
+BEGIN
+    IF (SELECT COUNT(*) FROM bronze.source_listings)
+        IS DISTINCT FROM 41 THEN
+        RAISE EXCEPTION
+            'FAIL PREFLIGHT: Expected 41 Bronze listings';
+    END IF;
+
+    IF (SELECT COUNT(*) FROM bronze.collection_runs)
+        IS DISTINCT FROM 9 THEN
+        RAISE EXCEPTION
+            'FAIL PREFLIGHT: Expected 9 Bronze collection runs';
+    END IF;
+
+    IF (
+        SELECT COUNT(*)
+        FROM bronze.source_listings
+        WHERE source_listing_id IN (
+            '22222222-2222-4222-8222-000000000101'::UUID,
+            '22222222-2222-4222-8222-000000000102'::UUID,
+            '22222222-2222-4222-8222-000000000401'::UUID,
+            '22222222-2222-4222-8222-000000000402'::UUID,
+            '22222222-2222-4222-8222-000000000801'::UUID
+        )
+    ) IS DISTINCT FROM 5 THEN
+        RAISE EXCEPTION
+            'FAIL PREFLIGHT: Required enrichment listings missing';
+    END IF;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM bronze.collection_runs
+        WHERE run_id =
+            '11111111-1111-4111-8111-000000000001'::UUID
+          AND source_name = 'wuzzuf'
+    ) THEN
+        RAISE EXCEPTION
+            'FAIL PREFLIGHT: Required Wuzzuf run missing';
+    END IF;
+
+    RAISE NOTICE
+        'PASS PREFLIGHT: Synthetic enrichment targets verified';
+END;
+$$;
+
+-- Synthetic fixture updates only.
+-- These updates intentionally bypass ingestion hashing and history.
+-- They must not be treated as production ingestion examples.
 
 -- Add overlapping skill aliases ('Python' on Wuzzuf + 'py' & 'Postgres' on Egyincs) to Scenario 1 merged pair
 -- so bridge_opportunity_skills must deduplicate 'Python' to 1 canonical count (not 2!).

@@ -7,16 +7,34 @@
 --   silver_opportunities, silver_opportunity_history).
 --
 -- SAFETY GUARD:
---   Aborts immediately unless current_database() contains 'test' (e.g. matchpoint_test).
+--   Requires an explicitly authorized test database name.
+--   The connected database must match the expected database exactly.
 --   Never run this script against a production or primary development database.
 
 BEGIN;
 
 DO $$
+DECLARE
+    v_expected_database TEXT;
 BEGIN
-    IF current_database() NOT ILIKE '%test%' THEN
-        RAISE EXCEPTION 'SAFETY ABORT: load_phase4_synthetic_bronze.sql must only run on an isolated test database (current_database = %).', current_database();
+    v_expected_database :=
+        current_setting('matchpoint.expected_test_database', TRUE);
+
+    IF v_expected_database IS NULL
+       OR v_expected_database NOT IN (
+           'matchpoint_test',
+           'matchpoint_dbt_review_test'
+       )
+       OR current_database() IS DISTINCT FROM v_expected_database THEN
+        RAISE EXCEPTION
+            'SAFETY ABORT: Expected authorized test database %, connected to %',
+            v_expected_database,
+            current_database();
     END IF;
+
+    RAISE NOTICE
+        'PASS SAFETY GUARD: Connected to %',
+        current_database();
 END;
 $$;
 

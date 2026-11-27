@@ -13,15 +13,16 @@ models:
           - unique
           - not_null
           - accepted_values:
-              values:
-                - wuzzuf
-                - forasna
-                - egyincs
-                - itida
-                - nti
-                - bayt
-                - devpost
-                - un_volunteers
+              arguments:
+                values:
+                  - wuzzuf
+                  - forasna
+                  - egyincs
+                  - itida
+                  - nti
+                  - bayt
+                  - devpost
+                  - un_volunteers
       - name: source_display_name
         data_tests:
           - not_null
@@ -164,54 +165,62 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('fct_opportunity_sources')
-              field: source_listing_id
+              arguments:
+                to: ref('fct_opportunity_sources')
+                field: source_listing_id
       - name: primary_source_name
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_sources')
-              field: source_name
+              arguments:
+                to: ref('dim_sources')
+                field: source_name
       - name: organization_key
         data_tests:
           - relationships:
-              to: ref('dim_organizations')
-              field: organization_key
+              arguments:
+                to: ref('dim_organizations')
+                field: organization_key
               config:
                 where: "organization_key IS NOT NULL"
       - name: location_key
         data_tests:
           - relationships:
-              to: ref('dim_locations')
-              field: location_key
+              arguments:
+                to: ref('dim_locations')
+                field: location_key
               config:
                 where: "location_key IS NOT NULL"
       - name: published_date_key
         data_tests:
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
               config:
                 where: "published_date_key IS NOT NULL"
       - name: deadline_date_key
         data_tests:
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
               config:
                 where: "deadline_date_key IS NOT NULL"
       - name: first_seen_date_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
       - name: last_seen_date_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
       - name: title
         data_tests:
           - not_null
@@ -219,22 +228,24 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - job
-                - internship
-                - graduate_program
-                - training
-                - scholarship
-                - competition
-                - hackathon
-                - freelance
-                - volunteering
-                - event
+              arguments:
+                values:
+                  - job
+                  - internship
+                  - graduate_program
+                  - training
+                  - scholarship
+                  - competition
+                  - hackathon
+                  - freelance
+                  - volunteering
+                  - event
       - name: effective_status
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: source_count
         data_tests:
           - not_null
@@ -264,14 +275,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('fct_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('fct_opportunities')
+                field: opportunity_id
       - name: source_name
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_sources')
-              field: source_name
+              arguments:
+                to: ref('dim_sources')
+                field: source_name
       - name: source_url
         data_tests:
           - not_null
@@ -279,13 +292,14 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - direct_cross_source_url
-                - shared_external_application_url
-                - multi_signal_composite
-                - singleton
-                - singleton_ambiguous_composite
-                - singleton_transitive_conflict
+              arguments:
+                values:
+                  - direct_cross_source_url
+                  - shared_external_application_url
+                  - multi_signal_composite
+                  - singleton
+                  - singleton_ambiguous_composite
+                  - singleton_transitive_conflict
       - name: is_primary_source
         data_tests:
           - not_null
@@ -301,19 +315,22 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('fct_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('fct_opportunities')
+                field: opportunity_id
       - name: skill_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_skills')
-              field: skill_key
+              arguments:
+                to: ref('dim_skills')
+                field: skill_key
       - name: skill_source_type
         data_tests:
           - not_null
           - accepted_values:
-              values: [explicit_source_tag, extracted]
+              arguments:
+                values: [explicit_source_tag, extracted]
 
   - name: bridge_opportunity_categories
     description: "Canonical deduplicated opportunity-to-category bridge table (separate from skills per ADR-007)."
@@ -326,14 +343,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('fct_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('fct_opportunities')
+                field: opportunity_id
       - name: category_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_categories')
-              field: category_key
+              arguments:
+                to: ref('dim_categories')
+                field: category_key
 
   - name: bridge_opportunity_work_modes
     description: "Canonical opportunity-to-work-mode bridge table."
@@ -346,13 +365,15 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('fct_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('fct_opportunities')
+                field: opportunity_id
       - name: work_mode
         data_tests:
           - not_null
           - accepted_values:
-              values: [on_site, remote, hybrid, unknown]
+              arguments:
+                values: [on_site, remote, hybrid, unknown]
 
   - name: bridge_opportunity_employment_types
     description: "Canonical opportunity-to-employment-type bridge table."
@@ -365,13 +386,15 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('fct_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('fct_opportunities')
+                field: opportunity_id
       - name: employment_type
         data_tests:
           - not_null
           - accepted_values:
-              values: [full_time, part_time, contract, temporary, freelance, unknown]
+              arguments:
+                values: [full_time, part_time, contract, temporary, freelance, unknown]
 
   - name: fct_collection_runs
     description: >
@@ -389,19 +412,22 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_sources')
-              field: source_name
+              arguments:
+                to: ref('dim_sources')
+                field: source_name
       - name: started_date_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
       - name: run_status
         data_tests:
           - not_null
           - accepted_values:
-              values: [running, completed, partial, failed, aborted]
+              arguments:
+                values: [running, completed, partial, failed, aborted]
       - name: persisted_invalid_record_count
         data_tests:
           - not_null
@@ -427,8 +453,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_sources')
-              field: source_name
+              arguments:
+                to: ref('dim_sources')
+                field: source_name
       - name: total_source_listings
         data_tests:
           - not_null
@@ -481,8 +508,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_categories')
-              field: category_key
+              arguments:
+                to: ref('dim_categories')
+                field: category_key
       - name: canonical_opportunity_count
         data_tests:
           - not_null
@@ -498,8 +526,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_locations')
-              field: location_key
+              arguments:
+                to: ref('dim_locations')
+                field: location_key
               config:
                 where: "NOT is_unreported_location"
       - name: is_unreported_location
@@ -526,7 +555,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [on_site, remote, hybrid, unknown, unreported]
+              arguments:
+                values: [on_site, remote, hybrid, unknown, unreported]
       - name: opportunities_with_work_mode_count
         description: "NON-ADDITIVE across work_mode values within an opportunity_type."
         data_tests:
@@ -549,7 +579,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [full_time, part_time, contract, temporary, freelance, unknown, unreported]
+              arguments:
+                values: [full_time, part_time, contract, temporary, freelance, unknown, unreported]
       - name: opportunities_with_employment_type_count
         description: "NON-ADDITIVE across employment_type values within an opportunity_type."
         data_tests:
@@ -563,8 +594,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('dim_skills')
-              field: skill_key
+              arguments:
+                to: ref('dim_skills')
+                field: skill_key
       - name: skill_name
         data_tests:
           - not_null
@@ -583,8 +615,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('dim_dates')
-              field: date_key
+              arguments:
+                to: ref('dim_dates')
+                field: date_key
       - name: opportunity_type
         data_tests:
           - not_null
@@ -592,7 +625,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: canonical_opportunity_count
         data_tests:
           - not_null

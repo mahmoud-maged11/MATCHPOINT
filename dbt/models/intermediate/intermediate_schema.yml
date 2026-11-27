@@ -16,40 +16,46 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - active
-                - expired
-                - closed
-                - unknown
+              arguments:
+                values:
+                  - active
+                  - expired
+                  - closed
+                  - unknown
       - name: effective_status_reason
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - observed_source_status
-                - exact_deadline_passed
-                - date_only_deadline_passed_conservative
-                - observed_source_status_retained
+              arguments:
+                values:
+                  - observed_source_status
+                  - exact_deadline_passed
+                  - date_only_deadline_passed_conservative
+                  - observed_source_status_retained
       - name: work_modes_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: employment_types_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: categories_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: required_skills_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
 
   - name: int_listing_skills_normalized
     description: >
@@ -71,7 +77,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [explicit_source_tag, extracted]
+              arguments:
+                values: [explicit_source_tag, extracted]
 
   - name: int_listing_categories_normalized
     description: >
@@ -128,10 +135,11 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - direct_cross_source_url
-                - shared_external_application_url
-                - multi_signal_composite
+              arguments:
+                values:
+                  - direct_cross_source_url
+                  - shared_external_application_url
+                  - multi_signal_composite
       - name: pair_evidence
         data_tests:
           - not_null
@@ -153,13 +161,14 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - direct_cross_source_url
-                - shared_external_application_url
-                - multi_signal_composite
-                - singleton
-                - singleton_ambiguous_composite
-                - singleton_transitive_conflict
+              arguments:
+                values:
+                  - direct_cross_source_url
+                  - shared_external_application_url
+                  - multi_signal_composite
+                  - singleton
+                  - singleton_ambiguous_composite
+                  - singleton_transitive_conflict
       - name: match_evidence
         data_tests:
           - not_null

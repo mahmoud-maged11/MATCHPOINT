@@ -18,15 +18,16 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - wuzzuf
-                - forasna
-                - egyincs
-                - itida
-                - nti
-                - bayt
-                - devpost
-                - un_volunteers
+              arguments:
+                values:
+                  - wuzzuf
+                  - forasna
+                  - egyincs
+                  - itida
+                  - nti
+                  - bayt
+                  - devpost
+                  - un_volunteers
       - name: source_opportunity_id
         data_tests:
           - not_null
@@ -43,90 +44,101 @@ models:
         description: "Foreign key to silver_organizations when organization is present; NULL otherwise."
         data_tests:
           - relationships:
-              to: ref('silver_organizations')
-              field: organization_key
+              arguments:
+                to: ref('silver_organizations')
+                field: organization_key
               config:
                 where: "organization_key IS NOT NULL"
       - name: opportunity_type
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - job
-                - internship
-                - graduate_program
-                - training
-                - scholarship
-                - competition
-                - hackathon
-                - freelance
-                - volunteering
-                - event
+              arguments:
+                values:
+                  - job
+                  - internship
+                  - graduate_program
+                  - training
+                  - scholarship
+                  - competition
+                  - hackathon
+                  - freelance
+                  - volunteering
+                  - event
       - name: location_key
         description: "Foreign key to silver_locations representing opportunity location; NULL when missing."
         data_tests:
           - relationships:
-              to: ref('silver_locations')
-              field: location_key
+              arguments:
+                to: ref('silver_locations')
+                field: location_key
               config:
                 where: "location_key IS NOT NULL"
       - name: work_modes_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: employment_types_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: categories_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: required_skills_state
         data_tests:
           - not_null
           - accepted_values:
-              values: [missing, confirmed_empty, populated]
+              arguments:
+                values: [missing, confirmed_empty, populated]
       - name: experience_level
         data_tests:
           - accepted_values:
-              values:
-                - entry_level
-                - junior
-                - mid_level
-                - senior
-                - lead
-                - manager
-                - executive
-                - unknown
+              arguments:
+                values:
+                  - entry_level
+                  - junior
+                  - mid_level
+                  - senior
+                  - lead
+                  - manager
+                  - executive
+                  - unknown
               config:
                 where: "experience_level IS NOT NULL"
       - name: salary_period
         data_tests:
           - accepted_values:
-              values:
-                - hourly
-                - daily
-                - weekly
-                - monthly
-                - yearly
-                - project
-                - unknown
+              arguments:
+                values:
+                  - hourly
+                  - daily
+                  - weekly
+                  - monthly
+                  - yearly
+                  - project
+                  - unknown
               config:
                 where: "salary_period IS NOT NULL"
       - name: published_at_precision
         data_tests:
           - accepted_values:
-              values: [exact, date_only, relative, unknown]
+              arguments:
+                values: [exact, date_only, relative, unknown]
               config:
                 where: "published_at_precision IS NOT NULL"
       - name: deadline_precision
         data_tests:
           - accepted_values:
-              values: [exact, date_only, relative, unknown]
+              arguments:
+                values: [exact, date_only, relative, unknown]
               config:
                 where: "deadline_precision IS NOT NULL"
       - name: observed_status
@@ -134,22 +146,25 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: effective_status
         description: "Derived downstream opportunity status per ADR-018 and ADR-047."
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: effective_status_reason
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - observed_source_status
-                - exact_deadline_passed
-                - date_only_deadline_passed_conservative
-                - observed_source_status_retained
+              arguments:
+                values:
+                  - observed_source_status
+                  - exact_deadline_passed
+                  - date_only_deadline_passed_conservative
+                  - observed_source_status_retained
       - name: content_hash
         data_tests:
           - not_null
@@ -157,8 +172,9 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [1]
-              quote: false
+              arguments:
+                values: [1]
+                quote: false
       - name: content_version
         data_tests:
           - not_null
@@ -166,8 +182,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('stg_bronze__collection_runs')
-              field: run_id
+              arguments:
+                to: ref('stg_bronze__collection_runs')
+                field: run_id
       - name: raw_payload
         data_tests:
           - not_null
@@ -261,14 +278,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: skill_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_skills')
-              field: skill_key
+              arguments:
+                to: ref('silver_skills')
+                field: skill_key
       - name: skill_name
         data_tests:
           - not_null
@@ -279,7 +298,8 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values: [explicit_source_tag, extracted]
+              arguments:
+                values: [explicit_source_tag, extracted]
 
   - name: silver_listing_categories
     description: "Normalized relational mapping between silver_source_listings and silver_categories."
@@ -292,14 +312,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: category_key
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_categories')
-              field: category_key
+              arguments:
+                to: ref('silver_categories')
+                field: category_key
       - name: category_name
         data_tests:
           - not_null
@@ -320,13 +342,15 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: work_mode
         data_tests:
           - not_null
           - accepted_values:
-              values: [on_site, remote, hybrid, unknown]
+              arguments:
+                values: [on_site, remote, hybrid, unknown]
 
   - name: silver_listing_employment_types
     description: >
@@ -341,13 +365,15 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: employment_type
         data_tests:
           - not_null
           - accepted_values:
-              values: [full_time, part_time, contract, temporary, freelance, unknown]
+              arguments:
+                values: [full_time, part_time, contract, temporary, freelance, unknown]
 
   - name: silver_listing_history
     description: >
@@ -363,14 +389,16 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: collection_run_id
         data_tests:
           - not_null
           - relationships:
-              to: ref('stg_bronze__collection_runs')
-              field: run_id
+              arguments:
+                to: ref('stg_bronze__collection_runs')
+                field: run_id
       - name: content_version
         data_tests:
           - not_null
@@ -392,8 +420,9 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: source_name
         data_tests:
           - not_null
@@ -410,8 +439,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('stg_bronze__collection_runs')
-              field: run_id
+              arguments:
+                to: ref('stg_bronze__collection_runs')
+                field: run_id
       - name: history_version_count
         data_tests:
           - not_null
@@ -429,28 +459,31 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('silver_source_listings')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_source_listings')
+                field: source_listing_id
       - name: opportunity_id
         description: "Deterministic canonical opportunity UUID referencing silver_opportunities."
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('silver_opportunities')
+                field: opportunity_id
       - name: source_name
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - wuzzuf
-                - forasna
-                - egyincs
-                - itida
-                - nti
-                - bayt
-                - devpost
-                - un_volunteers
+              arguments:
+                values:
+                  - wuzzuf
+                  - forasna
+                  - egyincs
+                  - itida
+                  - nti
+                  - bayt
+                  - devpost
+                  - un_volunteers
       - name: source_opportunity_id
         data_tests:
           - not_null
@@ -468,13 +501,14 @@ models:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - direct_cross_source_url
-                - shared_external_application_url
-                - multi_signal_composite
-                - singleton
-                - singleton_ambiguous_composite
-                - singleton_transitive_conflict
+              arguments:
+                values:
+                  - direct_cross_source_url
+                  - shared_external_application_url
+                  - multi_signal_composite
+                  - singleton
+                  - singleton_ambiguous_composite
+                  - singleton_transitive_conflict
       - name: match_evidence
         description: "Structured JSONB object explaining why this listing was grouped or kept separate."
         data_tests:
@@ -490,8 +524,9 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('stg_bronze__collection_runs')
-              field: run_id
+              arguments:
+                to: ref('stg_bronze__collection_runs')
+                field: run_id
 
   - name: silver_opportunities
     description: >
@@ -511,21 +546,23 @@ models:
           - unique
           - not_null
           - relationships:
-              to: ref('silver_opportunity_sources')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_opportunity_sources')
+                field: source_listing_id
       - name: primary_source_name
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - wuzzuf
-                - forasna
-                - egyincs
-                - itida
-                - nti
-                - bayt
-                - devpost
-                - un_volunteers
+              arguments:
+                values:
+                  - wuzzuf
+                  - forasna
+                  - egyincs
+                  - itida
+                  - nti
+                  - bayt
+                  - devpost
+                  - un_volunteers
       - name: primary_source_url
         data_tests:
           - not_null
@@ -544,42 +581,47 @@ models:
       - name: organization_key
         data_tests:
           - relationships:
-              to: ref('silver_organizations')
-              field: organization_key
+              arguments:
+                to: ref('silver_organizations')
+                field: organization_key
               config:
                 where: "organization_key IS NOT NULL"
       - name: opportunity_type
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - job
-                - internship
-                - graduate_program
-                - training
-                - scholarship
-                - competition
-                - hackathon
-                - freelance
-                - volunteering
-                - event
+              arguments:
+                values:
+                  - job
+                  - internship
+                  - graduate_program
+                  - training
+                  - scholarship
+                  - competition
+                  - hackathon
+                  - freelance
+                  - volunteering
+                  - event
       - name: location_key
         data_tests:
           - relationships:
-              to: ref('silver_locations')
-              field: location_key
+              arguments:
+                to: ref('silver_locations')
+                field: location_key
               config:
                 where: "location_key IS NOT NULL"
       - name: effective_status
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: primary_effective_status
         data_tests:
           - not_null
           - accepted_values:
-              values: [active, expired, closed, unknown]
+              arguments:
+                values: [active, expired, closed, unknown]
       - name: has_source_attribute_conflicts
         data_tests:
           - not_null
@@ -607,20 +649,23 @@ models:
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_opportunities')
-              field: opportunity_id
+              arguments:
+                to: ref('silver_opportunities')
+                field: opportunity_id
       - name: source_listing_id
         data_tests:
           - not_null
           - relationships:
-              to: ref('silver_opportunity_sources')
-              field: source_listing_id
+              arguments:
+                to: ref('silver_opportunity_sources')
+                field: source_listing_id
       - name: collection_run_id
         data_tests:
           - not_null
           - relationships:
-              to: ref('stg_bronze__collection_runs')
-              field: run_id
+              arguments:
+                to: ref('stg_bronze__collection_runs')
+                field: run_id
       - name: content_version
         data_tests:
           - not_null

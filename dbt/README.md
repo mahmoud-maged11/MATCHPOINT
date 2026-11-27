@@ -24,7 +24,7 @@ Approved Physical Bronze Schema (database/migrations/001..007)
   models/intermediate/ ──► schema: silver (views, Phase 3–4)
          │
          ▼
-  models/silver/       ──► schema: silver (tables/incremental, Phase 3–4)
+  models/silver/       ──► schema: silver (full-refresh tables, Phase 3–4)
          │
          ▼
   models/gold/         ──► schema: gold   (tables, Phase 5)
@@ -44,7 +44,8 @@ Approved Physical Bronze Schema (database/migrations/001..007)
 dbt/
 ├── dbt_project.yml              # Project config, paths, vars, and layer materialization defaults
 ├── profiles.yml.example         # Safe PostgreSQL 16 profile template (env-var driven)
-├── requirements.txt             # dbt-core and dbt-postgres version constraints
+├── requirements.txt             # Pinned dbt-core and dbt-postgres versions
+├── run_dbt.py                    # Standard dbt execution runner
 ├── README.md                    # This documentation
 ├── docs/
 │   ├── phase4_deduplication_design.md # Phase 4 deduplication design & runtime validation record
@@ -79,10 +80,21 @@ dbt/
 
 ### 2. Install dbt Dependencies
 
-From the repository root (inside your virtual environment):
+Use a dedicated Python 3.12 virtual environment,
+separate from the scraper runtime.
+
+Validated versions:
+
+- `dbt-core==1.12.7`
+- `dbt-postgres==1.11.0`
+
+From the repository root:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r dbt/requirements.txt
+py -3.12 -m venv "$env:USERPROFILE\venvs\matchpoint-dbt"
+$dbtPython = Join-Path $env:USERPROFILE "venvs\matchpoint-dbt\Scripts\python.exe"
+& $dbtPython -m pip install -r dbt/requirements.txt
+& $dbtPython -m pip check
 ```
 
 ### 3. Configure `profiles.yml` (No Hardcoded Secrets)
@@ -108,6 +120,7 @@ Never commit `dbt/profiles.yml` or `.env` to Git.
 | `DBT_TARGET` | No | `dev` | Active dbt target (`dev` or `test`). |
 | `DBT_SCHEMA` | No | `silver` | Fallback schema when a model does not declare `+schema`. |
 | `DBT_THREADS` | No | `4` | Number of parallel dbt threads (cast with `as_number`). |
+| `MATCHPOINT_DBT_JIT` | No | `off` | JIT mode for runner connections; accepts `on` or `off`. |
 
 Example in Windows PowerShell (current session only):
 
@@ -154,34 +167,94 @@ All six physical Bronze tables (96 columns total) are declared under the `bronze
 
 ## Validation Commands (Once Environment Is Ready)
 
-Run from inside the `dbt/` directory (using `--profiles-dir .` if `dbt/profiles.yml` is placed locally):
+Use `dbt/run_dbt.py` as the standard execution entry point.
+
+Run from the repository root using the dedicated Python 3.12 environment.
+The runner automatically sets its working directory to `dbt/`.
 
 ```powershell
-cd dbt
+$dbtPython = Join-Path $env:USERPROFILE "venvs/matchpoint-dbt/Scripts/python.exe"
 
-# 1. Verify profile, environment variables, and PostgreSQL 16 connectivity
-dbt debug --profiles-dir .
+$env:DBT_TARGET = "test"
+$env:POSTGRES_TEST_DB = "matchpoint_test"
 
-# 2. Validate YAML, Jinja macros, and source definitions without executing SQL
-dbt parse --profiles-dir .
+# Configure database credentials before execution.
+# Apply migrations 001..007 to the isolated test database first.
 
-# 3. Check Bronze source freshness (meaningful once data exists in Bronze)
-dbt source freshness --profiles-dir .
-
-# 4. Load explicit alias & location mapping seeds
-dbt seed --profiles-dir .
-
-# 5. Run staging, intermediate, and Silver models
-dbt run --profiles-dir .
-
-# 6. Run dbt generic and singular data quality tests
-dbt test --profiles-dir .
-
-# Optional: run against isolated test database
-dbt debug --profiles-dir . --target test
+& $dbtPython dbt/run_dbt.py debug --profiles-dir . --target test
+& $dbtPython dbt/run_dbt.py parse --profiles-dir . --target test --warn-error
+& $dbtPython dbt/run_dbt.py seed --profiles-dir . --target test
+& $dbtPython dbt/run_dbt.py run --profiles-dir . --target test
+& $dbtPython dbt/run_dbt.py test --profiles-dir . --target test --warn-error
 ```
 
+Execute commands sequentially and check `$LASTEXITCODE` after each command.
+Stop immediately on failure.
+
+Source freshness monitoring is optional until persistent ingestion exists.
+
+### PostgreSQL JIT Configuration
+
+The runner disables PostgreSQL JIT by default for its own connections,
+preserves existing PGOPTIONS, and propagates dbt exit codes.
+
+Set `MATCHPOINT_DBT_JIT=on` for controlled benchmarking.
+
+| Configuration | Query planning + execution |
+|---|---:|
+| JIT enabled | 11685.087 ms |
+| JIT disabled | 57.305 ms |
+
+These measurements apply to the recursive deduplication query
+on the 52-listing synthetic review dataset only.
+
+PostgreSQL server-wide settings remain unchanged.
+Introducing adapter-level connection options, including search_path,
+requires compatibility verification.
+
+### Execution Safety
+
+- Use isolated databases for synthetic integration tests.
+- Mutating fixture scripts require explicit session authorization.
+- Never run synthetic fixtures against development or production data.
+- Serialize warehouse builds and downstream extraction per target.
+- Halt ClickHouse loading on any warehouse build or quality-gate failure.
+- Individual table rebuilds are transactional, but the entire dbt run
+  is not a single atomic transaction.
+
+See [integration_tests/README.md](integration_tests/README.md)
+for fixture execution and snapshot safety requirements.
+
 See [models/silver/README.md](models/silver/README.md) for Phase 3 Silver rules, [docs/phase4_deduplication_design.md](docs/phase4_deduplication_design.md) for Phase 4 deduplication & runtime validation, and [docs/phase5_gold_design.md](docs/phase5_gold_design.md) for Phase 5 Gold star-schema & analytical marts.
+
+---
+
+## Independent Warehouse Review
+
+Original Phase 4 and Phase 5 validation results remain historical evidence.
+
+The independent review used Python 3.12.10, dbt-core 1.12.7,
+dbt-postgres 1.11.0, and PostgreSQL 16.
+
+Review database: `matchpoint_dbt_review_test`.
+
+Review improvements:
+
+- Updated 108 generic test declarations to supported arguments syntax.
+- Preserved generic test semantics.
+- Added exact database authorization for mutating integration scripts.
+- Strengthened NULL-safe assertions and fixture preconditions.
+- Added duplicate-sensitive EXCEPT ALL comparisons.
+- Protected Silver and Gold snapshot creation.
+- Added Gold snapshot schema compatibility checks.
+- Introduced process-scoped JIT configuration through run_dbt.py.
+- Validated eight runner functional checks.
+
+The expanded synthetic dataset contains 52 source listings
+across eight supported sources and 43 canonical opportunities.
+
+Live ingestion, production-scale performance, Linux/Airflow runner
+validation, and downstream integration remain pending.
 
 ---
 

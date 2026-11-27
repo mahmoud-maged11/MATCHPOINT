@@ -2,7 +2,7 @@
 --
 -- PURPOSE:
 --   Appends 11 deterministic edge-case listings + 3 edge-case collection runs into Bronze
---   on an ISOLATED TEST DATABASE (`*test*`) WITHOUT disturbing the 41 Phase 4 baseline listings.
+--   on an explicitly authorized isolated test database WITHOUT disturbing the 41 Phase 4 baseline listings.
 --   Closes all 7 testing gaps identified in the Phase 4 & Phase 5 independent audit:
 --     EC1/EC2 : Extreme outlier dates (1970-01-01, 2099-12-31, 9999-12-31) -> bounded dim_dates + FK resolution
 --     EC3     : Past exact deadline -> effective_status = 'expired'
@@ -19,9 +19,22 @@ BEGIN;
 
 DO $$
 BEGIN
-    IF current_database() NOT ILIKE '%test%' THEN
-        RAISE EXCEPTION 'SAFETY ABORT: load_phase5_edge_cases_synthetic.sql must only run on a test database (current_database = %).', current_database();
+    IF current_setting('matchpoint.expected_test_database', TRUE) IS NULL
+       OR current_setting('matchpoint.expected_test_database', TRUE) NOT IN (
+           'matchpoint_test',
+           'matchpoint_dbt_review_test'
+       )
+       OR current_database() IS DISTINCT FROM
+           current_setting('matchpoint.expected_test_database', TRUE) THEN
+        RAISE EXCEPTION
+            'SAFETY ABORT: Expected authorized test database %, connected to %',
+            current_setting('matchpoint.expected_test_database', TRUE),
+            current_database();
     END IF;
+
+    RAISE NOTICE
+        'PASS SAFETY GUARD: Connected to %',
+        current_database();
 END;
 $$;
 

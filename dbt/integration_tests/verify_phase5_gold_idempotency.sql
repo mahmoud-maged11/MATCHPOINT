@@ -1,9 +1,9 @@
 -- MATCHPOINT Phase 5 Gold Layer Full 20-Model Idempotency Verification Script
 --
--- Performs full symmetric set comparison (EXCEPT in both directions across ALL columns)
+-- Performs full symmetric multiset comparison (EXCEPT ALL in both directions across compared columns)
 -- between Run 1 snapshots (gold._tmp_run1_*) and Run 2 materialized tables (gold.*)
 -- for ALL 20 Gold models (6 dimensions, 7 facts/bridges, 7 analytical marts),
--- then cleans up all temporary snapshot tables.
+-- then removes all persistent test snapshot tables.
 
 DO $$
 DECLARE
@@ -40,12 +40,71 @@ DECLARE
         'mart_opportunity_lifecycle_trends'
     ];
 BEGIN
-    IF current_database() NOT ILIKE '%test%' THEN
-        RAISE EXCEPTION 'SAFETY ABORT: verify_phase5_gold_idempotency.sql must only run on a test database (current_database = %).', current_database();
+    IF current_setting('matchpoint.expected_test_database', TRUE) IS NULL
+       OR current_setting('matchpoint.expected_test_database', TRUE) NOT IN (
+           'matchpoint_test',
+           'matchpoint_dbt_review_test'
+       )
+       OR current_database() IS DISTINCT FROM
+           current_setting('matchpoint.expected_test_database', TRUE) THEN
+        RAISE EXCEPTION
+            'SAFETY ABORT: Expected authorized test database %, connected to %',
+            current_setting('matchpoint.expected_test_database', TRUE),
+            current_database();
     END IF;
+
+    RAISE NOTICE
+        'PASS SAFETY GUARD: Connected to %',
+        current_database();
 
     FOREACH v_model IN ARRAY v_models LOOP
         v_snap := '_tmp_run1_' || v_model;
+
+        -- Verify column names, order, types and type modifiers.
+        IF EXISTS (
+            WITH run1_schema AS (
+                SELECT
+                    attnum,
+                    attname,
+                    atttypid,
+                    atttypmod,
+                    attcollation
+                FROM pg_attribute
+                WHERE attrelid = to_regclass(
+                    format('gold.%I', v_snap)
+                )
+                  AND attnum > 0
+                  AND NOT attisdropped
+            ),
+            run2_schema AS (
+                SELECT
+                    attnum,
+                    attname,
+                    atttypid,
+                    atttypmod,
+                    attcollation
+                FROM pg_attribute
+                WHERE attrelid = to_regclass(
+                    format('gold.%I', v_model)
+                )
+                  AND attnum > 0
+                  AND NOT attisdropped
+            )
+            SELECT 1
+            FROM (
+                (SELECT * FROM run1_schema
+                 EXCEPT ALL
+                 SELECT * FROM run2_schema)
+                UNION ALL
+                (SELECT * FROM run2_schema
+                 EXCEPT ALL
+                 SELECT * FROM run1_schema)
+            ) schema_diffs
+        ) THEN
+            RAISE EXCEPTION
+                'FAIL SCHEMA IDEMPOTENCY: gold.% differs from its Run 1 snapshot',
+                v_model;
+        END IF;
 
         -- Compare ALL business/key/metric/JSONB columns, excluding only per-run wall-clock evaluation timestamp
         -- (lifecycle_evaluated_at on fct_opportunities intentionally records each dbt run's UTC timestamp).
@@ -54,16 +113,19 @@ BEGIN
         FROM information_schema.columns
         WHERE table_schema = 'gold'
           AND table_name = v_model
-          AND column_name NOT IN ('lifecycle_evaluated_at');
+          AND NOT (
+              v_model = 'fct_opportunities'
+              AND column_name = 'lifecycle_evaluated_at'
+          );
 
         EXECUTE format('SELECT COUNT(*) FROM gold.%I', v_snap) INTO v_cnt_r1;
         EXECUTE format('SELECT COUNT(*) FROM gold.%I', v_model) INTO v_cnt_r2;
 
         EXECUTE format(
             'SELECT COUNT(*) FROM (
-                (SELECT %s FROM gold.%I EXCEPT SELECT %s FROM gold.%I)
+                (SELECT %s FROM gold.%I EXCEPT ALL SELECT %s FROM gold.%I)
                 UNION ALL
-                (SELECT %s FROM gold.%I EXCEPT SELECT %s FROM gold.%I)
+                (SELECT %s FROM gold.%I EXCEPT ALL SELECT %s FROM gold.%I)
             ) diff_rows',
             v_cols, v_snap, v_cols, v_model,
             v_cols, v_model, v_cols, v_snap
@@ -84,6 +146,6 @@ BEGIN
         RAISE EXCEPTION 'FAIL GOLD IDEMPOTENCY: % total diffs across 20 Gold models', v_total_diffs;
     END IF;
 
-    RAISE NOTICE 'PASS GOLD IDEMPOTENCY: All 20 Gold models produced bit-for-bit identical rows across Run 1 and Run 2 (0 diffs)';
+    RAISE NOTICE 'PASS GOLD IDEMPOTENCY: All 20 Gold models produced identical compared rows across Run 1 and Run 2 (0 diffs)';
 END;
 $$;

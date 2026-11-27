@@ -79,11 +79,12 @@ seeds:
         data_tests:
           - not_null
           - accepted_values:
-              values:
-                - host_root_only
-                - host_any_generic_portal
-                - path_prefix_generic
-                - path_exact_generic
+              arguments:
+                values:
+                  - host_root_only
+                  - host_any_generic_portal
+                  - path_prefix_generic
+                  - path_exact_generic
       - name: exclusion_reason
         description: "Documented rationale for excluding this portal pattern."
         data_tests:
@@ -103,15 +104,16 @@ seeds:
           - unique
           - not_null
           - accepted_values:
-              values:
-                - wuzzuf
-                - forasna
-                - egyincs
-                - itida
-                - nti
-                - bayt
-                - devpost
-                - un_volunteers
+              arguments:
+                values:
+                  - wuzzuf
+                  - forasna
+                  - egyincs
+                  - itida
+                  - nti
+                  - bayt
+                  - devpost
+                  - un_volunteers
       - name: source_display_name
         description: "Human-readable display name for BI and application views."
         data_tests:
