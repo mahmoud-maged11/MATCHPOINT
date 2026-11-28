@@ -82,23 +82,21 @@ full_component_validation AS (
         COALESCE(BOOL_OR(t2.has_tier2_edge), FALSE) AS has_tier2_edge,
         (
             COALESCE(BOOL_OR(t2.has_tier2_edge), FALSE)
-            AND COUNT(*) FILTER (WHERE f.published_at IS NOT NULL AND f.published_at_precision IN ('exact', 'date_only')) >= 2
-            AND EXTRACT(
-                EPOCH FROM (
-                    MAX(f.published_at) FILTER (WHERE f.published_at IS NOT NULL AND f.published_at_precision IN ('exact', 'date_only'))
-                    - MIN(f.published_at) FILTER (WHERE f.published_at IS NOT NULL AND f.published_at_precision IN ('exact', 'date_only'))
-                )
-            ) > (45 * 86400)
+            AND {{ temporal_component_exceeds_window(
+                'f.published_at',
+                'f.published_calendar_date',
+                'f.published_at_precision',
+                45
+            ) }}
         ) AS violates_published_span,
         (
             COALESCE(BOOL_OR(t2.has_tier2_edge), FALSE)
-            AND COUNT(*) FILTER (WHERE f.deadline IS NOT NULL AND f.deadline_precision IN ('exact', 'date_only')) >= 2
-            AND EXTRACT(
-                EPOCH FROM (
-                    MAX(f.deadline) FILTER (WHERE f.deadline IS NOT NULL AND f.deadline_precision IN ('exact', 'date_only'))
-                    - MIN(f.deadline) FILTER (WHERE f.deadline IS NOT NULL AND f.deadline_precision IN ('exact', 'date_only'))
-                )
-            ) > (14 * 86400)
+            AND {{ temporal_component_exceeds_window(
+                'f.deadline',
+                'f.deadline_calendar_date',
+                'f.deadline_precision',
+                14
+            ) }}
         ) AS violates_deadline_span,
         (
             COALESCE(BOOL_OR(t2.has_tier2_edge), FALSE)

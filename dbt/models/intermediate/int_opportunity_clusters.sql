@@ -1,3 +1,5 @@
+{{ config(materialized='table') }}
+
 -- Production clustering model.
 -- Shared implementation is also exercised by synthetic tests.
 

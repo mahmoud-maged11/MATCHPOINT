@@ -6,6 +6,7 @@ from urllib.parse import urljoin, urlparse, parse_qs
 from urllib.robotparser import RobotFileParser
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 from scrapers.sources.nti_mapper import NTIMapper
 
 
@@ -22,8 +23,16 @@ class NTIScraper(BaseScraper):
 
     def __init__(self, max_jobs=20, max_pages=10):
 
-        if max_jobs <= 0 or max_pages <= 0:
-            raise ValueError("Collection limits must be positive")
+        for name, value in (
+            ("max_jobs", max_jobs),
+            ("max_pages", max_pages),
+        ):
+            if value is not None and (
+                type(value) is not int or value <= 0
+            ):
+                raise ValueError(
+                    f"{name} must be a positive integer or None"
+                )
 
         super().__init__("nti")
 
@@ -113,7 +122,7 @@ class NTIScraper(BaseScraper):
         return response.content.decode("utf-8-sig")
 
     @classmethod
-    def extract_listing_pages(
+    def extract_listing_pages_with_diagnostics(
         cls,
         html,
         discovery_url,
@@ -124,24 +133,31 @@ class NTIScraper(BaseScraper):
         soup = NTIMapper.clean_soup(html)
 
         pages = {}
+        invalid = 0
 
         for anchor in soup.select(
-            ".trackLinks a[href], .courseLinks a[href]"
+            ".trackLinks a, .courseLinks a"
         ):
 
-            target = urljoin(
-                discovery_url,
-                anchor["href"]
-            )
+            href = anchor.get("href")
+
+            if not isinstance(href, str) or not href.strip():
+
+                invalid += 1
+                continue
+
+            target = urljoin(discovery_url, href)
 
             try:
                 cls.validate_url(target)
             except ValueError:
+                invalid += 1
                 continue
 
             parsed = urlparse(target)
 
             if parsed.path != f"/dey/{endpoint}":
+                invalid += 1
                 continue
 
             params = parse_qs(parsed.query)
@@ -151,6 +167,7 @@ class NTIScraper(BaseScraper):
                 len(values) != 1
                 or not re.fullmatch(r"[1-9]\d*", values[0])
             ):
+                invalid += 1
                 continue
 
             page_id = values[0]
@@ -160,6 +177,7 @@ class NTIScraper(BaseScraper):
             )
 
             if not label:
+                invalid += 1
                 continue
 
             pages[page_id] = {
@@ -171,22 +189,35 @@ class NTIScraper(BaseScraper):
                 ),
             }
 
-        return list(pages.values())
+        return list(pages.values()), invalid
 
     @classmethod
-    def extract_courses(cls, html, initiative, page):
+    def extract_listing_pages(
+        cls, html, discovery_url, endpoint, parameter
+    ):
+
+        pages, _ = cls.extract_listing_pages_with_diagnostics(
+            html, discovery_url, endpoint, parameter
+        )
+
+        return pages
+
+    @classmethod
+    def extract_courses_with_diagnostics(cls, html, initiative, page):
 
         soup = NTIMapper.clean_soup(html)
 
         courses = []
+        invalid = 0
 
         for anchor in soup.select(
-            ".courseLinks a[data-target]"
+            ".courseLinks a"
         ):
 
             track_id = anchor.get("data-target", "").strip()
 
             if not re.fullmatch(r"[1-9]\d*", track_id):
+                invalid += 1
                 continue
 
             closed_node = anchor.select_one("span.closed")
@@ -216,6 +247,7 @@ class NTIScraper(BaseScraper):
             )
 
             if not title:
+                invalid += 1
                 continue
 
             is_creativa = initiative == "creativa"
@@ -237,6 +269,15 @@ class NTIScraper(BaseScraper):
                 "status_raw": status_raw,
                 "source_url": page["url"],
             })
+
+        return courses, invalid
+
+    @classmethod
+    def extract_courses(cls, html, initiative, page):
+
+        courses, _ = cls.extract_courses_with_diagnostics(
+            html, initiative, page
+        )
 
         return courses
 
@@ -282,17 +323,6 @@ class NTIScraper(BaseScraper):
 
             html = self.fetch_detail(listing["track_id"])
 
-            career_html = None
-
-            if listing["initiative"] == "hire_ready":
-                career_html = self.fetch_career_details()
-
-            opportunity = NTIMapper.map_course(
-                listing,
-                html,
-                career_html=career_html,
-            )
-
         except requests.HTTPError as exc:
 
             if (
@@ -305,14 +335,33 @@ class NTIScraper(BaseScraper):
 
             raise
 
+        career_html = None
+
+        if listing["initiative"] == "hire_ready":
+
+            career_html = self.fetch_career_details()
+
+        try:
+
+            opportunity = NTIMapper.map_course(
+                listing,
+                html,
+                career_html=career_html,
+            )
+
         except (ValueError, TypeError) as exc:
 
             self.stats["invalid"] += 1
 
+            # Do not retain a failed detail in the cache.
+            self.detail_cache.pop(
+                listing["track_id"], None
+            )
+
             self.record_invalid(
                 raw_payload=listing,
                 error_type=type(exc).__name__,
-                error_message=str(exc),
+                error_message="Invalid NTI course details",
                 source_url=listing["source_url"],
             )
 
@@ -320,7 +369,6 @@ class NTIScraper(BaseScraper):
 
         self.stats["accepted"] += 1
         self.stats[opportunity.status] += 1
-
         self.stats[listing["initiative"]] += 1
 
         return opportunity
@@ -339,62 +387,176 @@ class NTIScraper(BaseScraper):
             "career_details_fetched": 0,
             "cache_hits": 0,
             "duplicates": 0,
+            "identity_conflicts": 0,
             "unavailable": 0,
             "invalid": 0,
+            "invalid_discovery_links": 0,
+            "invalid_course_links": 0,
             "accepted": 0,
             "closed": 0,
             "unknown": 0,
             "hire_ready": 0,
             "upskilling": 0,
             "creativa": 0,
+            "initiative_results": {},
         }
 
-        self.load_robots()
-
-        # Discover each initiative before collecting details.
+        opportunities = []
+        seen = set()
+        seen_signatures = {}
         queues = []
+
+        reports = self.stats["initiative_results"]
+
+        for initiative, _, _, _ in self.DISCOVERY:
+
+            reports[initiative] = {
+                "discovered": 0,
+                "processed": 0,
+                "listing_pages_fetched": 0,
+                "courses_discovered": 0,
+                "courses_attempted": 0,
+                "courses_duplicate": 0,
+                "accepted": 0,
+                "issues": [],
+                "stop_reason": "not_started",
+            }
+
+        def issue(initiative, reason):
+
+            report = reports[initiative]
+
+            if reason.value not in report["issues"]:
+
+                report["issues"].append(reason.value)
+
+            report["stop_reason"] = reason.value
+
+            if self._running:
+
+                self.mark_collection_issue(reason)
+
+        def finish(reason):
+
+            for report in reports.values():
+
+                if not report["issues"]:
+
+                    if report["stop_reason"] == "not_started":
+                        continue
+
+                    report["stop_reason"] = (
+                        StopReason.SOURCE_EXHAUSTED.value
+                        if report["processed"] == report["discovered"]
+                        and reason != StopReason.SOURCE_ERROR
+                        else reason.value
+                    )
+
+            if (
+                self._running
+                and reason in {
+                    StopReason.SOURCE_EXHAUSTED,
+                    StopReason.REQUESTED_LIMIT,
+                }
+            ):
+
+                self.mark_collection_complete(reason)
+
+            self.logger.info("NTI stats: %s", self.stats)
+
+            return opportunities
+
+        try:
+
+            self.load_robots()
+
+        except (requests.RequestException, PermissionError):
+
+            if self._running:
+
+                self.mark_collection_issue(
+                    StopReason.SOURCE_ERROR
+                )
+
+            raise
+
+        except ValueError:
+
+            if self._running:
+
+                self.mark_collection_issue(
+                    StopReason.PARSING_ERROR
+                )
+
+            raise
+
+        # Discover initiative listing pages.
 
         for initiative, path, endpoint, parameter in self.DISCOVERY:
 
             url = self.BASE_URL + path
 
-            html = self.fetch_html(url)
+            try:
+
+                html = self.fetch_html(url)
+
+            except (requests.RequestException, PermissionError):
+
+                issue(initiative, StopReason.SOURCE_ERROR)
+
+                if not self._running:
+                    raise
+
+                return finish(StopReason.SOURCE_ERROR)
+
+            except ValueError:
+
+                issue(initiative, StopReason.PARSING_ERROR)
+
+                if not self._running:
+                    raise
+
+                continue
 
             self.stats["discovery_pages"] += 1
 
-            pages = self.extract_listing_pages(
-                html,
-                url,
-                endpoint,
-                parameter,
+            pages, invalid = (
+                self.extract_listing_pages_with_diagnostics(
+                    html, url, endpoint, parameter
+                )
             )
 
+            self.stats["invalid_discovery_links"] += invalid
+
+            reports[initiative]["discovered"] = len(pages)
+
+            if invalid or not pages:
+
+                issue(initiative, StopReason.PARSING_ERROR)
+
             if not pages:
-                raise ValueError(
-                    f"No listing pages found for {initiative}"
-                )
+                continue
+
+            if not reports[initiative]["issues"]:
+
+                reports[initiative]["stop_reason"] = "discovered"
 
             queues.append((initiative, iter(pages)))
 
-        opportunities = []
-        seen = set()
+        # Preserve round-robin collection.
 
-        # Round-robin listing discovery.
-        while (
-            queues
-            and len(opportunities) < self.max_jobs
-            and self.stats["listing_pages"] < self.max_pages
-        ):
+        while queues:
 
             remaining_queues = []
 
             for initiative, pages in queues:
 
                 if (
-                    len(opportunities) >= self.max_jobs
-                    or self.stats["listing_pages"] >= self.max_pages
+                    (self.max_jobs is not None and len(opportunities) >= self.max_jobs)
+                    or (self.max_pages is not None and self.stats["listing_pages"] >= self.max_pages)
                 ):
-                    break
+
+                    return finish(StopReason.REQUESTED_LIMIT)
 
                 page = next(pages, None)
 
@@ -403,22 +565,55 @@ class NTIScraper(BaseScraper):
 
                 remaining_queues.append((initiative, pages))
 
-                html = self.fetch_html(page["url"])
+                try:
+
+                    html = self.fetch_html(page["url"])
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    issue(initiative, StopReason.SOURCE_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return finish(StopReason.SOURCE_ERROR)
+
+                except ValueError:
+
+                    issue(initiative, StopReason.PARSING_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    continue
 
                 self.stats["listing_pages"] += 1
+                reports[initiative]["listing_pages_fetched"] += 1
 
-                courses = self.extract_courses(
-                    html,
-                    initiative,
-                    page,
+                courses, invalid = (
+                    self.extract_courses_with_diagnostics(
+                        html, initiative, page
+                    )
                 )
 
+                self.stats["invalid_course_links"] += invalid
                 self.stats["courses_discovered"] += len(courses)
+                reports[initiative]["courses_discovered"] += len(courses)
+
+                if invalid or not courses:
+
+                    issue(initiative, StopReason.PARSING_ERROR)
 
                 for listing in courses:
 
-                    if len(opportunities) >= self.max_jobs:
-                        break
+                    if (self.max_jobs is not None and len(opportunities) >= self.max_jobs):
+
+                        return finish(
+                            StopReason.REQUESTED_LIMIT
+                        )
 
                     identity = (
                         listing["initiative"],
@@ -426,20 +621,90 @@ class NTIScraper(BaseScraper):
                         listing.get("center_id"),
                     )
 
+                    signature = (
+                        listing["title"],
+                        listing.get("location"),
+                        listing.get("closed"),
+                    )
+
                     if identity in seen:
 
                         self.stats["duplicates"] += 1
+                        reports[initiative]["courses_duplicate"] += 1
+
+                        if seen_signatures[identity] != signature:
+
+                            self.stats["identity_conflicts"] += 1
+                            issue(
+                                initiative,
+                                StopReason.PARSING_ERROR,
+                            )
+
                         continue
 
-                    seen.add(identity)
+                    reports[initiative]["courses_attempted"] += 1
 
-                    opportunity = self.collect_course(listing)
+                    try:
+
+                        opportunity = self.collect_course(
+                            listing
+                        )
+
+                    except (
+                        requests.RequestException,
+                        PermissionError,
+                    ):
+
+                        issue(
+                            initiative,
+                            StopReason.SOURCE_ERROR,
+                        )
+
+                        if not self._running:
+                            raise
+
+                        return finish(StopReason.SOURCE_ERROR)
+
+                    except ValueError:
+
+                        issue(
+                            initiative,
+                            StopReason.PARSING_ERROR,
+                        )
+
+                        if not self._running:
+                            raise
+
+                        continue
 
                     if opportunity is not None:
+
+                        seen.add(identity)
+                        seen_signatures[identity] = signature
+
                         opportunities.append(opportunity)
+
+                        reports[initiative]["accepted"] += 1
+
+                reports[initiative]["processed"] += 1
 
             queues = remaining_queues
 
-        self.logger.info("NTI stats: %s", self.stats)
+            if (self.max_jobs is not None and len(opportunities) >= self.max_jobs):
 
-        return opportunities
+                return finish(StopReason.REQUESTED_LIMIT)
+
+            if (self.max_pages is not None and self.stats["listing_pages"] >= self.max_pages):
+
+                all_processed = all(
+                    report["processed"] == report["discovered"]
+                    for report in reports.values()
+                )
+
+                return finish(
+                    StopReason.SOURCE_EXHAUSTED
+                    if all_processed
+                    else StopReason.REQUESTED_LIMIT
+                )
+
+        return finish(StopReason.SOURCE_EXHAUSTED)

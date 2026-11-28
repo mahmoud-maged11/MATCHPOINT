@@ -1,3 +1,5 @@
+{{ config(materialized='table') }}
+
 WITH base AS (
 
     SELECT
@@ -27,8 +29,10 @@ WITH base AS (
         sl.salary_min,
         sl.published_at,
         sl.published_at_precision,
+        sl.published_calendar_date,
         sl.deadline,
         sl.deadline_precision,
+        sl.deadline_calendar_date,
         sl.observed_status,
         sl.effective_status,
         sl.first_seen_at,
@@ -57,8 +61,8 @@ WITH base AS (
             + (CASE WHEN sl.location_raw IS NOT NULL THEN 1 ELSE 0 END)
             + (CASE WHEN sl.requirements IS NOT NULL THEN 1 ELSE 0 END)
             + (CASE WHEN sl.salary_min IS NOT NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN sl.deadline IS NOT NULL THEN 1 ELSE 0 END)
-            + (CASE WHEN sl.published_at IS NOT NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN sl.deadline_calendar_date IS NOT NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN sl.published_calendar_date IS NOT NULL THEN 1 ELSE 0 END)
             + (CASE WHEN sl.work_modes_state = 'populated' THEN 1 ELSE 0 END)
             + (CASE WHEN sl.employment_types_state = 'populated' THEN 1 ELSE 0 END)
             + (CASE WHEN sl.required_skills_state = 'populated' THEN 1 ELSE 0 END)
@@ -71,7 +75,7 @@ WITH base AS (
 
 ),
 
-normalized_signals AS (
+normalized_signals AS MATERIALIZED (
 
     SELECT
         b.*,
@@ -154,7 +158,7 @@ normalized_signals AS (
 
 ),
 
-url_parsed AS (
+url_parsed AS MATERIALIZED (
 
     SELECT
         ns.*,
@@ -218,7 +222,7 @@ url_parsed AS (
 
 ),
 
-portal_filtered AS (
+portal_filtered AS MATERIALIZED (
 
     SELECT
         up.*,

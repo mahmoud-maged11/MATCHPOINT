@@ -226,7 +226,7 @@ def test_missing_country():
     })
 
     assert scraper.run() == []
-    assert scraper.stats["non_egyptian"] == 1
+    assert scraper.stats["unknown_country"] == 1
 
 
 def test_expired_job():

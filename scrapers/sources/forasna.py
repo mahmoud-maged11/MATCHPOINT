@@ -7,6 +7,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 from scrapers.models import Opportunity
 from scrapers.sources.forasna_mapper import ForasnaMapper
 
@@ -28,11 +29,16 @@ class ForasnaScraper(BaseScraper):
         max_jobs=20,
         max_pages=10,
     ):
-        if max_jobs < 1:
-            raise ValueError("max_jobs must be positive")
-
-        if max_pages < 1:
-            raise ValueError("max_pages must be positive")
+        for name, value in (
+            ("max_jobs", max_jobs),
+            ("max_pages", max_pages),
+        ):
+            if value is not None and (
+                type(value) is not int or value < 1
+            ):
+                raise ValueError(
+                    f"{name} must be a positive integer or None"
+                )
 
         super().__init__("forasna")
 
@@ -81,23 +87,59 @@ class ForasnaScraper(BaseScraper):
         return response.text
 
     @classmethod
-    def extract_job_links(cls, soup):
+    def extract_job_links_with_diagnostics(cls, soup):
+
         links = {}
+        invalid_links = 0
 
-        for anchor in soup.select(cls.JOB_SELECTOR):
-            try:
-                url = ForasnaMapper.extract_source_url(
-                    anchor["href"]
-                )
+        cards = soup.select(
+            "#search-results-container .result-wrp"
+        )
 
-                source_id = (
-                    ForasnaMapper.extract_source_id(url)
-                )
+        for card in cards:
 
-            except (ValueError, TypeError, KeyError):
+            anchors = card.select(
+                "h2.job-title a"
+            )
+
+            if not anchors:
+
+                invalid_links += 1
                 continue
 
-            links.setdefault(source_id, url)
+            for anchor in anchors:
+
+                try:
+
+                    href = anchor.get("href")
+
+                    if not isinstance(href, str) or not href.strip():
+
+                        raise ValueError("Missing job URL")
+
+                    url = ForasnaMapper.extract_source_url(
+                        href
+                    )
+
+                    source_id = (
+                        ForasnaMapper.extract_source_id(url)
+                    )
+
+                except (ValueError, TypeError, KeyError):
+
+                    invalid_links += 1
+                    continue
+
+                links.setdefault(source_id, url)
+
+        return links, invalid_links
+
+    @classmethod
+    def extract_job_links(cls, soup):
+
+        links, _ = cls.extract_job_links_with_diagnostics(
+            soup
+        )
 
         return links
 
@@ -127,7 +169,10 @@ class ForasnaScraper(BaseScraper):
         self.stats = {
             "pages": 0,
             "discovered": 0,
+            "invalid_links": 0,
             "duplicates": 0,
+            "pagination_overlaps": 0,
+            "unknown_country": 0,
             "details_fetched": 0,
             "unavailable": 0,
             "non_egyptian": 0,
@@ -137,9 +182,20 @@ class ForasnaScraper(BaseScraper):
             "accepted": 0,
         }
 
-        self.load_robots()
-
         opportunities = []
+
+        try:
+
+            self.load_robots()
+
+        except (requests.RequestException, PermissionError):
+
+            if self._running:
+                self.mark_collection_issue(
+                    StopReason.SOURCE_ERROR
+                )
+
+            raise
 
         seen_ids = set()
         visited_pages = set()
@@ -148,29 +204,93 @@ class ForasnaScraper(BaseScraper):
 
         while (
             page_url
-            and self.stats["pages"] < self.max_pages
-            and len(opportunities) < self.max_jobs
+            and (
+                self.max_pages is None
+                or self.stats["pages"] < self.max_pages
+            )
+            and (
+                self.max_jobs is None
+                or len(opportunities) < self.max_jobs
+            )
         ):
 
             if page_url in visited_pages:
                 self.logger.warning(
                     "Repeated pagination URL detected"
                 )
+
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.SOURCE_ERROR
+                    )
+
                 break
 
             visited_pages.add(page_url)
 
-            html = self.fetch_html(page_url)
+            try:
+
+                html = self.fetch_html(page_url)
+
+            except (requests.RequestException, PermissionError):
+
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.SOURCE_ERROR
+                    )
+
+                if not opportunities:
+                    raise
+
+                break
+
+            except ValueError:
+
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.PARSING_ERROR
+                    )
+
+                if not opportunities:
+                    raise
+
+                break
+
             soup = BeautifulSoup(html, "lxml")
 
             if not soup.select_one(
                 "#search-results-container"
             ):
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.PARSING_ERROR
+                    )
+
+                if opportunities:
+                    break
+
                 raise ValueError(
                     "Forasna search container not found"
                 )
 
-            links = self.extract_job_links(soup)
+            links, invalid_links = (
+                self.extract_job_links_with_diagnostics(soup)
+            )
+
+            self.stats["invalid_links"] += invalid_links
+
+            if invalid_links:
+
+                self.logger.warning(
+                    "Forasna invalid job links: %s",
+                    invalid_links,
+                )
+
+                if self._running:
+
+                    self.mark_collection_issue(
+                        StopReason.PARSING_ERROR
+                    )
 
             self.stats["pages"] += 1
             self.stats["discovered"] += len(links)
@@ -182,13 +302,51 @@ class ForasnaScraper(BaseScraper):
             )
 
             if not links:
+
+                if self._running:
+
+                    if soup.select(
+                        "#search-results-container .result-wrp"
+                    ) or soup.select_one(
+                        'link[rel="next"][href]'
+                    ):
+
+                        self.mark_collection_issue(
+                            StopReason.PARSING_ERROR
+                        )
+
+                    else:
+
+                        self.mark_collection_complete(
+                            StopReason.SOURCE_EXHAUSTED
+                        )
+
                 break
+
+            overlap = set(links).intersection(seen_ids)
+
+            if overlap:
+                self.stats["pagination_overlaps"] += len(overlap)
+
+                self.logger.warning(
+                    "Forasna pagination overlap: %s",
+                    len(overlap),
+                )
+
+                if (
+                    self.max_jobs is None
+                    and self.max_pages is None
+                    and self._running
+                ):
+                    self.mark_collection_issue(
+                        StopReason.SOURCE_ERROR
+                    )
 
             new_ids = 0
 
             for source_id, job_url in links.items():
 
-                if len(opportunities) >= self.max_jobs:
+                if self.max_jobs is not None and len(opportunities) >= self.max_jobs:
                     break
 
                 if source_id in seen_ids:
@@ -216,7 +374,42 @@ class ForasnaScraper(BaseScraper):
                         )
                         continue
 
-                    raise
+                    if self._running:
+                        self.mark_collection_issue(
+                            StopReason.SOURCE_ERROR
+                        )
+
+                    if not opportunities:
+                        raise
+
+                    return opportunities
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    if self._running:
+                        self.mark_collection_issue(
+                            StopReason.SOURCE_ERROR
+                        )
+
+                    if not opportunities:
+                        raise
+
+                    return opportunities
+
+                except ValueError:
+
+                    if self._running:
+                        self.mark_collection_issue(
+                            StopReason.PARSING_ERROR
+                        )
+
+                    if not opportunities:
+                        raise
+
+                    return opportunities
 
                 self.stats["details_fetched"] += 1
 
@@ -248,7 +441,11 @@ class ForasnaScraper(BaseScraper):
                         else None
                     )
 
-                    if country != "EG":
+                    if not isinstance(country, str) or not country.strip():
+                        self.stats["unknown_country"] += 1
+                        continue
+
+                    if country.strip().upper() != "EG":
                         self.stats["non_egyptian"] += 1
                         continue
 
@@ -256,6 +453,8 @@ class ForasnaScraper(BaseScraper):
                         html=detail_html,
                         source_url=job_url,
                         observed_at=observed_at,
+                        soup=detail_soup,
+                        posting=posting,
                     )
 
                 except (
@@ -290,12 +489,56 @@ class ForasnaScraper(BaseScraper):
                 self.stats["accepted"] += 1
 
             if new_ids == 0:
+
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.SOURCE_ERROR
+                    )
+
                 break
 
-            if len(opportunities) >= self.max_jobs:
+            if self.max_jobs is not None and len(opportunities) >= self.max_jobs:
+
+                if self._running:
+                    self.mark_collection_complete(
+                        StopReason.REQUESTED_LIMIT
+                    )
+
                 break
 
-            page_url = self.extract_next_page(soup)
+            try:
+
+                page_url = self.extract_next_page(soup)
+
+            except ValueError:
+
+                if self._running:
+                    self.mark_collection_issue(
+                        StopReason.PARSING_ERROR
+                    )
+
+                if not opportunities:
+                    raise
+
+                break
+
+            if page_url is None:
+
+                if self._running:
+                    self.mark_collection_complete(
+                        StopReason.SOURCE_EXHAUSTED
+                    )
+
+                break
+
+            if self.max_pages is not None and self.stats["pages"] >= self.max_pages:
+
+                if self._running:
+                    self.mark_collection_complete(
+                        StopReason.REQUESTED_LIMIT
+                    )
+
+                break
 
         self.logger.info(
             "Forasna collection statistics: %s",

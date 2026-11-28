@@ -284,3 +284,6 @@ Thumbs.db
 
 # Local dbt Python environment
 /.venv312/
+
+# Local recovery artifacts
+/.runtime/

@@ -65,7 +65,13 @@ class HTTPClient:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
 
-    def get(self, url: str, params: dict | None = None):
+    def get(
+        self,
+        url: str,
+        params: dict | None = None,
+        *,
+        allow_redirects: bool = True,
+    ):
 
         if (
             self.source_config is not None
@@ -84,7 +90,8 @@ class HTTPClient:
             response = self.session.get(
                 url,
                 params=params,
-                timeout=self.request_timeout
+                timeout=self.request_timeout,
+                allow_redirects=allow_redirects
             )
 
             response.raise_for_status()

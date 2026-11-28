@@ -23,15 +23,15 @@ standard_spine AS (
 ),
 
 observed_dates AS (
-    SELECT (published_at AT TIME ZONE 'UTC')::DATE AS calendar_date
-    FROM {{ ref('fct_opportunities') }}
-    WHERE published_date_key IS NOT NULL
+    SELECT published_calendar_date AS calendar_date
+    FROM {{ ref('silver_opportunities') }}
+    WHERE published_calendar_date IS NOT NULL
 
     UNION
 
-    SELECT (deadline AT TIME ZONE 'UTC')::DATE AS calendar_date
-    FROM {{ ref('fct_opportunities') }}
-    WHERE deadline_date_key IS NOT NULL
+    SELECT deadline_calendar_date AS calendar_date
+    FROM {{ ref('silver_opportunities') }}
+    WHERE deadline_calendar_date IS NOT NULL
 
     UNION
 

@@ -2,7 +2,7 @@
 -- 1. Exactly one lifecycle flag (is_active, is_expired, is_closed, is_unknown_status) must be TRUE.
 -- 2. salary_midpoint must be NULL unless both salary_min and salary_max are present, and within [min, max].
 -- 3. is_multi_source must equal (source_count > 1).
--- 4. published_date_key must be NULL unless published_at is present with exact/date_only precision.
+-- 4. Published and deadline date keys must match reliable calendar dates.
 
 SELECT
     opportunity_id,
@@ -14,7 +14,10 @@ SELECT
     salary_midpoint,
     published_at,
     published_at_precision,
-    published_date_key
+    published_date_key,
+    deadline,
+    deadline_precision,
+    deadline_date_key
 FROM {{ ref('fct_opportunities') }}
 WHERE
     (
@@ -30,12 +33,25 @@ WHERE
         AND salary_max IS NOT NULL
         AND (salary_midpoint IS NULL OR salary_midpoint < salary_min OR salary_midpoint > salary_max)
     )
-    OR (
-        (published_at IS NULL OR published_at_precision NOT IN ('exact', 'date_only'))
-        AND published_date_key IS NOT NULL
-    )
-    OR (
-        published_at IS NOT NULL
-        AND published_at_precision IN ('exact', 'date_only')
-        AND published_date_key IS NULL
-    )
+    OR published_date_key IS DISTINCT FROM
+        CAST(
+            TO_CHAR(
+                {{ reliable_calendar_date(
+                    'published_at',
+                    'published_at_raw',
+                    'published_at_precision'
+                ) }},
+                'YYYYMMDD'
+            ) AS INTEGER
+        )
+    OR deadline_date_key IS DISTINCT FROM
+        CAST(
+            TO_CHAR(
+                {{ reliable_calendar_date(
+                    'deadline',
+                    'deadline_raw',
+                    'deadline_precision'
+                ) }},
+                'YYYYMMDD'
+            ) AS INTEGER
+        )

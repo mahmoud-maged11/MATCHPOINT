@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "project": "MATCHPOINT",
+  "reconciliation_status": "open_with_known_gaps",
+  "historical_rejections": 23,
+  "rejections_with_later_matching_listing": 14,
+  "unmatched_rejections": 9,
+  "unique_unmatched_records": 6,
+  "unresolved_records": {
+    "egyincs": [
+      "130325",
+      "130655",
+      "135191",
+      "192854"
+    ],
+    "devpost": [
+      "27097"
+    ],
+    "forasna": [
+      "445581"
+    ]
+  },
+  "deferred_company_enrichment": {
+    "source": "egyincs",
+    "reason": "access_denied",
+    "company_ids": [
+      "130305",
+      "131096",
+      "189631"
+    ],
+    "affected_listing_ids": [
+      "134776",
+      "138848",
+      "139293",
+      "139360",
+      "189630"
+    ]
+  },
+  "additional_coverage_gaps": {
+    "egyincs": {
+      "jobs_checkpoint_exists": false,
+      "jobs_bootstrap_required": true,
+      "full_coverage_verified": false,
+      "jobs_incremental_ready": false,
+      "courses_incremental_ready_at_review": true,
+      "targeted_recovery_attempted": true,
+      "targeted_recovery_count": 0,
+      "remaining_mapping_rejections": 4,
+      "mapping_rejection_reason": "Missing or ambiguous opportunity type",
+      "manual_checkpoint_allowed": false,
+      "recommended_jobs_strategy_until_bootstrap": "periodic_full",
+      "bootstrap_blockers": [
+        "unresolved_mapping_rejections",
+        "deferred_company_enrichment",
+        "verified_incremental_coverage_required"
+      ]
+    },
+    "wuzzuf": {
+      "status": "pagination_recovery_completed",
+      "previous_partial_collection_resolved": true,
+      "run_id": "5a40ae0f-0557-4815-9391-88e6c26f5c16",
+      "pages": 252,
+      "discovered": 5035,
+      "matched": 4851,
+      "inserted": 597,
+      "stored_listings": 4852,
+      "historical_only": 1,
+      "not_stored": 184,
+      "identity_reconciliation_verified": true,
+      "pagination_integrity_verified": true,
+      "persistence_verified": true,
+      "non_egypt_count_from_log": 184,
+      "non_egypt_identity_level_verified": false,
+      "full_coverage_certified": false,
+      "evidence_sha256": "8237f249e79454909921ccacf4aa2da98dd8c31adfc93c02e0b75b19f4700cf6",
+      "reviewed_at": "2026-11-28T08:21:41.221889+00:00"
+    },
+    "itida": {
+      "unresolved_offline_targets": [
+        "event:itida-x-500-seed-boot-camp-number6",
+        "event:aast-aswan-sessions"
+      ],
+      "full_coverage_verified": false,
+      "reviewed_pages": 536,
+      "accepted": 515,
+      "excluded": 19,
+      "classification_review_completed": true
+    },
+    "bayt": {
+      "collection_status": "in_progress_at_review",
+      "full_coverage_verified": false
+    }
+  },
+  "recovery_policy": {
+    "preserve_quarantine": true,
+    "fabricate_missing_fields": false,
+    "bypass_access_restrictions": false,
+    "require_verified_source_evidence": true,
+    "prefer_targeted_recovery": true
+  },
+  "full_coverage_certified": false
+}

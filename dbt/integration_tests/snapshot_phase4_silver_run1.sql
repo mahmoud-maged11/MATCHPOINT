@@ -16,7 +16,7 @@ BEGIN
     IF v_expected_database IS NULL
        OR v_expected_database NOT IN (
            'matchpoint_test',
-           'matchpoint_dbt_review_test'
+           'matchpoint_dbt_review_test', 'matchpoint_date_contract_test', 'matchpoint_date_contract_utf8_test'
        )
        OR current_database() IS DISTINCT FROM v_expected_database THEN
         RAISE EXCEPTION

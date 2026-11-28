@@ -570,7 +570,11 @@ def test_empty_collection(scraper):
 def test_max_pages(scraper, listing):
 
     scraper.fetch_listing = Mock(
-        return_value=([listing], 100)
+        side_effect=[
+            ([{**listing, "id": 101}], 100),
+            ([{**listing, "id": 102}], 100),
+            ([{**listing, "id": 103}], 100),
+        ]
     )
 
     scraper.collect_record = Mock(

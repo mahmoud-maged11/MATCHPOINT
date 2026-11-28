@@ -54,7 +54,10 @@ def normalize_source_datetime(value):
     if parsed.utcoffset() is None:
         return None, "unknown"
 
-    return parsed.astimezone(timezone.utc), "exact"
+    try:
+        return parsed.astimezone(timezone.utc), "exact"
+    except (ValueError, OverflowError):
+        return None, "unknown"
 
 
 def resolve_opportunity_status(

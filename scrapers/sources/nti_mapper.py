@@ -40,9 +40,10 @@ class NTIMapper:
         return soup
 
     @classmethod
-    def extract_sections(cls, html):
+    def extract_sections(cls, html, *, soup=None):
 
-        soup = cls.clean_soup(html)
+        if soup is None:
+            soup = cls.clean_soup(html)
 
         sections = []
         part = None
@@ -99,9 +100,10 @@ class NTIMapper:
 
 
     @classmethod
-    def extract_duration(cls, html):
+    def extract_duration(cls, html, *, soup=None):
 
-        soup = cls.clean_soup(html)
+        if soup is None:
+            soup = cls.clean_soup(html)
 
         durations = {
             "total_hours": None,
@@ -289,12 +291,12 @@ class NTIMapper:
         if detail_title is None:
             raise ValueError("Missing NTI detail heading")
 
-        sections = cls.extract_sections(html)
+        sections = cls.extract_sections(html, soup=soup)
 
         if not any(section["items"] for section in sections):
             raise ValueError("Missing NTI course details")
 
-        durations = cls.extract_duration(html)
+        durations = cls.extract_duration(html, soup=soup)
 
         if career_html:
 

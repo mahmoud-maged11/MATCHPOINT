@@ -165,6 +165,8 @@ def test_unverified_deadline():
 
     assert result.deadline is None
     assert result.deadline_raw == "2027-12-29"
+    assert result.deadline_precision == "date_only"
+    assert result.status == "unknown"
 
 
 def test_external_application_url():
@@ -510,3 +512,116 @@ def test_mid_level_source_slug():
     result = EgyincsMapper.map_record(record)
 
     assert result.experience_level == "mid_level"
+
+
+@pytest.mark.parametrize(
+    "raw, expected_precision, expected_timestamp",
+    [
+        ("2026-12-15", "date_only", None),
+        ("2028-02-29", "date_only", None),
+        ("2026-02-29", "unknown", None),
+        ("2026-13-01", "unknown", None),
+        ("2026-04-31", "unknown", None),
+        ("0001-01-01", "date_only", None),
+        ("9999-12-31", "date_only", None),
+        ("12/15/2026", "unknown", None),
+        ("2026-12-15T10:00:00", "unknown", None),
+        (
+            "2026-12-15T12:00:00+02:00",
+            "exact",
+            datetime(2026, 12, 15, 10, tzinfo=timezone.utc),
+        ),
+        ("0001-01-01T00:00:00+01:00", "unknown", None),
+        ("9999-12-31T23:59:59-01:00", "unknown", None),
+        ("invalid", "unknown", None),
+        ("", "unknown", None),
+        (None, "unknown", None),
+    ],
+)
+def test_deadline_semantic_regression(
+    raw, expected_precision, expected_timestamp
+):
+    record = make_record()
+    record["felan-jobs_closing_date"] = raw
+
+    result = EgyincsMapper.map_record(record)
+
+    assert result.deadline_precision == expected_precision
+    assert result.deadline == expected_timestamp
+    assert result.deadline_raw == (raw or None)
+    assert result.raw_payload["closing_date"] == raw
+    assert result.status == "unknown"
+
+
+@pytest.mark.parametrize(
+    "raw, precision, expected",
+    [
+        ("2026-11-25", "date_only", None),
+        ("2028-02-29", "date_only", None),
+        ("2026-02-29", "unknown", None),
+        ("0001-01-01T00:00:00+01:00", "unknown", None),
+        ("9999-12-31T23:59:59-01:00", "unknown", None),
+        (
+            "2026-11-25T08:00:00",
+            "exact",
+            datetime(2026, 11, 25, 8, tzinfo=timezone.utc),
+        ),
+        (
+            "2026-11-25T08:00:00+02:00",
+            "exact",
+            datetime(2026, 11, 25, 6, tzinfo=timezone.utc),
+        ),
+        ("invalid", "unknown", None),
+        (None, "unknown", None),
+    ],
+)
+def test_publication_semantic_regression(
+    raw, precision, expected
+):
+    record = make_record()
+    record["date_gmt"] = raw
+
+    result = EgyincsMapper.map_record(record)
+
+    assert result.published_at == expected
+    assert result.published_at_precision == precision
+    assert result.published_at_raw == raw
+    assert result.raw_payload["date_gmt"] == raw
+
+
+@pytest.mark.parametrize(
+    "names, expected",
+    [
+        ([], None),
+        (["\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"], None),
+        (
+            [
+                "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f",
+                "Computer Science",
+            ],
+            "Computer Science",
+        ),
+        (
+            ["Computer Science", "Engineering"],
+            "Computer Science | Engineering",
+        ),
+    ],
+)
+def test_requirements_placeholder_regression(names, expected):
+
+    record = make_record()
+
+    record["_embedded"]["wp:term"].append([
+        make_term("jobs-major", f"major-{index}", name)
+        for index, name in enumerate(names)
+    ])
+
+    result = EgyincsMapper.map_record(record)
+
+    assert result.requirements == expected
+
+    raw_majors = result.raw_payload["terms"].get(
+        "jobs-major", []
+    )
+
+    assert [term["name"] for term in raw_majors] == names

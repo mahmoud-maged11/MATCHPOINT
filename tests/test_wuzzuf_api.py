@@ -65,6 +65,7 @@ def test_company_cache():
 
     scraper.client.get.return_value.json.return_value = {
         "data": {
+            "id": "123",
             "attributes": {
                 "name": "Test Company"
             }

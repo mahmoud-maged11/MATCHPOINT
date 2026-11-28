@@ -497,9 +497,11 @@ def test_empty_event_listing(scraper):
         event_listing=make_event_listing(slugs=())
     )
 
-    with pytest.raises(ValueError):
+    result = scraper.run_with_result()
 
-        scraper.run()
+    assert result.status.value == "partial"
+    assert result.stop_reason.value == "parsing_error"
+    assert result.accepted_count == 1
 
 
 @pytest.mark.parametrize(

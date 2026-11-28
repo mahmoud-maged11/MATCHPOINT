@@ -25,3 +25,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 
 # Project timezone
 TIMEZONE = os.getenv("TZ", "Africa/Cairo")
+# Rejection evidence fingerprinting
+REJECTION_FINGERPRINT_KEY = os.getenv(
+    "REJECTION_FINGERPRINT_KEY"
+)

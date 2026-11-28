@@ -12,6 +12,7 @@ class ITIDAMapper:
     BASE_URL = "https://itida.gov.eg"
 
     PROGRAM_TYPES = {
+        "graduation": "training",
         "studentsummertraining": "internship",
         "train-to-hire-program": "training",
         "train-to-hire-for-its-bps": "training",
@@ -24,6 +25,9 @@ class ITIDAMapper:
     }
 
     EVENT_TYPES = {
+        "exams": "event",
+        "conference events": "event",
+        "summit events": "event",
         "training": "training",
         "workshop": "training",
         "conference": "event",
@@ -141,12 +145,14 @@ class ITIDAMapper:
     def extract_program_sections(cls, root):
 
         sections = []
+        seen = set()
 
         for node in root.select(".ms-rtestate-field"):
 
             text = cls.node_text(node)
 
-            if text and text not in sections:
+            if text and text not in seen:
+                seen.add(text)
                 sections.append(text)
 
         return sections
@@ -363,16 +369,77 @@ class ITIDAMapper:
             root.select_one(".innerPageContent")
         )
 
-        if not description:
-            raise ValueError("Event description not found")
-
         fields = cls.extract_event_fields(root)
 
         category = fields.get("category")
+        category_key = (category or "").casefold()
+
+        original_description = description
+
+        placeholder = (
+            not description
+            or description.casefold() == title.casefold()
+            or re.fullmatch(
+                r"[\s.]*",
+                description
+            ) is not None
+            or re.fullmatch(
+                r"(?:read more|learn more about the event here)"
+                r"[\s.]*",
+                description.casefold()
+            ) is not None
+        )
+
+        if placeholder and category_key in {
+                "exams", "programs",
+                "conference events", "summit events"
+        }:
+
+            start = cls.parse_event_date(
+                fields.get("start_date")
+            )
+
+            end = cls.parse_event_date(
+                fields.get("end_date")
+            )
+
+            if (
+                    start is None
+                    or end is None
+                    or end < start
+            ):
+                raise ValueError(
+                    "Insufficient event evidence"
+                )
+
+            description = None
+
+        elif not description:
+            raise ValueError("Event description not found")
 
         opportunity_type = cls.EVENT_TYPES.get(
             (category or "").lower()
         )
+
+        if (
+                opportunity_type is None
+                and (category or "").lower() == "programs"
+        ):
+
+            title_key = title.casefold()
+
+            if (
+                    "she can" in title_key
+                    and "master class" in title_key
+            ):
+                opportunity_type = "training"
+
+            elif (
+                    "graduation" in title_key
+                    and "project" in title_key
+                    and "student" in (description or "").casefold()
+            ):
+                opportunity_type = "event"
 
         if opportunity_type is None:
             raise ValueError("Unsupported event category")
@@ -398,7 +465,7 @@ class ITIDAMapper:
                 "page_type": "event",
                 "slug": slug,
                 "title": title,
-                "description": description,
+                "description": original_description,
                 "event_start_date": fields.get("start_date"),
                 "event_end_date": fields.get("end_date"),
                 "location": fields.get("location"),

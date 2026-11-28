@@ -302,9 +302,15 @@ class Opportunity(BaseModel):
                     f"{field} requires an exact timestamp"
                 )
 
-            if precision in ("relative", "date_only") and not raw:
+            if precision == "date_only" and value is not None:
                 raise ValueError(
-                    f"{field} requires its original date value"
+                    f"{field} date_only cannot contain a timestamp"
                 )
+
+            if precision in ("relative", "date_only"):
+                if raw is None or not raw.strip():
+                    raise ValueError(
+                        f"{field} requires its original date value"
+                    )
 
         return self

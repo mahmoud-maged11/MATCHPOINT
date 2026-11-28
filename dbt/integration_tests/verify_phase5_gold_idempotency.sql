@@ -43,7 +43,7 @@ BEGIN
     IF current_setting('matchpoint.expected_test_database', TRUE) IS NULL
        OR current_setting('matchpoint.expected_test_database', TRUE) NOT IN (
            'matchpoint_test',
-           'matchpoint_dbt_review_test'
+           'matchpoint_dbt_review_test', 'matchpoint_date_contract_test', 'matchpoint_date_contract_utf8_test'
        )
        OR current_database() IS DISTINCT FROM
            current_setting('matchpoint.expected_test_database', TRUE) THEN

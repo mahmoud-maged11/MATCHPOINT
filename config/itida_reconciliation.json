@@ -1,0 +1,143 @@
+{
+  "policy_version": 1,
+  "source": "itida",
+  "reviewed_at": "2026-11-28T08:08:27.935506+00:00",
+  "evidence_sha256": "924312495cbcbc2363b5339811c8fc3ebb9555459cf2190286053b40b269bd51",
+  "scope": "student_and_graduate_opportunities",
+  "records": [
+    {
+      "identity": "event:itida-x-500-boot-camp-for-accelerators-managers",
+      "source_url": "https://itida.gov.eg/English/MediaCenter/Events/Pages/ITIDA-X-500-Boot-Camp-for-Accelerators-Managers.aspx",
+      "title": "ITIDA X 500 Boot Camp for Accelerators' Managers",
+      "observed_at": "2026-11-28T06:23:30.975321+00:00",
+      "html_sha256": "10b32f525e1feaa244bfd149e3c11f5f4ecc500af735f2d5d62c77aaf2ee0d81",
+      "original_error": "Unsupported event category",
+      "classification": "excluded",
+      "reason_code": "professional_management_program",
+      "reason": "Title targets accelerator managers.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "event:itida-x-500-seed-boot-camp-number6",
+      "source_url": "https://itida.gov.eg/English/MediaCenter/Events/Pages/ITIDA-X-500-Seed-Boot-Camp-number6.aspx",
+      "title": "ITIDA X 500 Seed Boot Camp #6",
+      "observed_at": "2026-11-28T06:23:36.906017+00:00",
+      "html_sha256": "63e772aaed269d171d582a2f6e48dcf1ea6351c1d1e4eb5824f9e107f2799d20",
+      "original_error": "Unsupported event category",
+      "classification": "unresolved",
+      "reason_code": "insufficient_evidence",
+      "reason": "Placeholder description; eligibility unknown.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "event:500-global-scalup-up-program",
+      "source_url": "https://itida.gov.eg/English/MediaCenter/Events/Pages/500-Global-Scalup-Up-program.aspx",
+      "title": "500 Global Scalup Up program",
+      "observed_at": "2026-11-28T06:23:42.963290+00:00",
+      "html_sha256": "eda6e311a30747d1339c72e059f0540fec99fdfff17e1ecc253d488f1f471861",
+      "original_error": "Unsupported event category",
+      "classification": "excluded",
+      "reason_code": "startup_growth_program",
+      "reason": "Targets Pre-Series A or Series A startups.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "event:aast-aswan-sessions",
+      "source_url": "https://itida.gov.eg/English/MediaCenter/Events/Pages/AAST-Aswan-sessions.aspx",
+      "title": "AAST Aswan sessions",
+      "observed_at": "2026-11-28T06:23:48.968630+00:00",
+      "html_sha256": "633bf108ce228539914def911cde5963bdf3248bd22461a6ce37fbf7da37158c",
+      "original_error": "Event description not found",
+      "classification": "unresolved",
+      "reason_code": "insufficient_evidence",
+      "reason": "Workshop description and subject unavailable.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:itac-cfp",
+      "source_url": "https://itida.gov.eg/English/Programs/ITAC-CFP/Pages/default.aspx",
+      "title": "ITAC Collaborative Funded Projects",
+      "observed_at": "2026-11-28T06:24:29.229886+00:00",
+      "html_sha256": "be90e9603bb3184b0997e6ab98c4b0103b3d7891a583586638560f55317f2d1a",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "research_funding",
+      "reason": "Research and product development funding.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:acceleratorprogram",
+      "source_url": "https://itida.gov.eg/English/Programs/AcceleratorProgram/Pages/default.aspx",
+      "title": "TIEC\u2019S TECHNOLOGY ENTREPRENEURSHIP ACCELERATOR, TEA",
+      "observed_at": "2026-11-28T06:24:31.107167+00:00",
+      "html_sha256": "f9d378d82251b2233af1b4975ada57cf96839c5b55bb67f8688936b323b04813",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "entrepreneurship_team_program",
+      "reason": "Requires entrepreneurial teams with an idea or prototype.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:esitip",
+      "source_url": "https://itida.gov.eg/English/Programs/ESITIP/Pages/default.aspx",
+      "title": "ESITIP",
+      "observed_at": "2026-11-28T06:24:33.110487+00:00",
+      "html_sha256": "160e349fae553838cbd1a782e7612b41904bacfcbae7d5592da0de05227cfa51",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "corporate_research_funding",
+      "reason": "Requires Egyptian and Spanish companies.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:secc-offerings",
+      "source_url": "https://itida.gov.eg/English/Programs/SECC-Offerings/Pages/default.aspx",
+      "title": "What is SECC?",
+      "observed_at": "2026-11-28T06:24:37.118852+00:00",
+      "html_sha256": "9ac331c4e3deb8e79a7e2702f0a8301da5f4aaefd1f9dcdf3b0f0a1609a5464b",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "service_catalog",
+      "reason": "General service catalog, not a specific training intake.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:egyptmakeselectronics",
+      "source_url": "https://itida.gov.eg/English/Programs/egyptmakeselectronics/Pages/default.aspx",
+      "title": "Egypt Makes Electronics [EME]",
+      "observed_at": "2026-11-28T06:24:43.417440+00:00",
+      "html_sha256": "29d84b4ddf1d991aa7d00ead8294c584eafba97b514cb7e0c65ed8981f48ac95",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "umbrella_initiative",
+      "reason": "National initiative containing multiple subprograms.",
+      "review_scope": "cached_observation_only"
+    },
+    {
+      "identity": "program:ici",
+      "source_url": "https://itida.gov.eg/English/Programs/ICI/Pages/default.aspx",
+      "title": "Innovation Cluster Initiative (iCi)",
+      "observed_at": "2026-11-28T06:24:47.118061+00:00",
+      "html_sha256": "d2c0194a28feddcf5ab2f5a28faad25f1d6468092488a8ee970d64819d2bc60b",
+      "original_error": "Unsupported program type",
+      "classification": "excluded",
+      "reason_code": "institutional_funding",
+      "reason": "Targets clusters of legal entities.",
+      "review_scope": "cached_observation_only"
+    }
+  ],
+  "summary": {
+    "previously_accepted": 515,
+    "previously_excluded": 11,
+    "newly_excluded": 8,
+    "total_excluded": 19,
+    "unresolved": 2,
+    "total_reviewed": 536,
+    "classified": 534,
+    "classification_resolution_pct": 99.63
+  },
+  "http_requests": 0,
+  "database_changed": false,
+  "runtime_policy_enforced": false,
+  "full_coverage_certified": false
+}

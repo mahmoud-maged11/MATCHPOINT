@@ -7,6 +7,7 @@ from bs4 import BeautifulSoup
 from pydantic import ValidationError
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 from scrapers.models import Opportunity
 
 
@@ -295,4 +296,20 @@ class WuzzufScraper(BaseScraper):
             encoding="utf-8"
         )
 
-        return self.parse_html(html)
+        opportunities = self.parse_html(html)
+
+        if self._running:
+
+            if opportunities or self.invalid_records:
+
+                self.mark_collection_complete(
+                    StopReason.INPUT_EXHAUSTED
+                )
+
+            else:
+
+                self.mark_collection_issue(
+                    StopReason.PARSING_ERROR
+                )
+
+        return opportunities

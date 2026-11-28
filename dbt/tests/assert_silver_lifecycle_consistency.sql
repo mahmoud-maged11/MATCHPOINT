@@ -11,7 +11,10 @@ SELECT
     effective_status,
     effective_status_reason,
     deadline,
-    deadline_precision
+    deadline_precision,
+    deadline_calendar_date,
+    is_deadline_reliable,
+    lifecycle_evaluated_at
 FROM {{ ref('silver_source_listings') }}
 WHERE
     -- Rule 1: Explicit closed/expired precedence
@@ -23,7 +26,7 @@ WHERE
     -- Rule 3: Missing or uncertain deadline precision cannot auto-expire
     OR (
         observed_status IN ('active', 'unknown')
-        AND (deadline IS NULL OR deadline_precision IS NULL OR deadline_precision IN ('relative', 'unknown'))
+        AND deadline_calendar_date IS NULL
         AND effective_status <> observed_status
     )
 

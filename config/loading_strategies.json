@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "project": "MATCHPOINT",
+  "purpose": "Declarative loading policy",
+  "scheduler_enabled": false,
+  "schedule_status": "proposed",
+  "sources": {
+    "egyincs": {
+      "collection_mode": "api",
+      "initial_load": "full",
+      "recurring_load": "incremental",
+      "interval_hours": 6,
+      "scopes": [
+        "jobs",
+        "lp_course"
+      ],
+      "checkpoint_enabled": true,
+      "bootstrap_required": true,
+      "overlap_minutes": 5,
+      "safety_lag_minutes": 2,
+      "live_incremental_acceptance": "partial",
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "wuzzuf": {
+      "collection_mode": "api",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "forasna": {
+      "collection_mode": "live",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "bayt": {
+      "collection_mode": "live",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "itida": {
+      "collection_mode": "live",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "nti": {
+      "collection_mode": "live",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "devpost": {
+      "collection_mode": "api",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    },
+    "un_volunteers": {
+      "collection_mode": "api",
+      "initial_load": "full",
+      "recurring_load": "full",
+      "interval_hours": 24,
+      "scopes": [
+        "default"
+      ],
+      "checkpoint_enabled": false,
+      "bootstrap_required": false,
+      "storage": "postgres",
+      "batch_size": 100,
+      "max_jobs": null,
+      "max_pages": null,
+      "allow_partial_persistence": true,
+      "allow_partial_checkpoint": false,
+      "infer_closure_from_absence": false,
+      "recover_before_recollecting": true,
+      "require_source_lock": true,
+      "require_warehouse_write_guard": true
+    }
+  },
+  "publication_policy": {
+    "runner": "dbt/run_protected.py",
+    "require_finalized_persistence": true,
+    "require_exclusive_warehouse_lock": true,
+    "publish_partial_data_as_complete": false
+  }
+}

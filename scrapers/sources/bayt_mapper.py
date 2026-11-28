@@ -146,6 +146,98 @@ class BaytMapper:
 
         return postings[0]
 
+
+    @classmethod
+    def extract_fallback_posting(cls, soup, url):
+
+        job_id = cls.extract_job_id(url)
+
+        canonicals = soup.select('link[rel="canonical"]')
+
+        if len(canonicals) != 1:
+            raise ValueError("Missing reliable canonical identity")
+
+        canonical = canonicals[0].get("href")
+
+        if not isinstance(canonical, str):
+            raise ValueError("Invalid canonical identity")
+
+        if cls.extract_job_id(canonical) != job_id:
+            raise ValueError("Canonical job identity mismatch")
+
+        titles = soup.select(
+            'h1#job_title[data-jb-field="title"]'
+        )
+
+        if len(titles) != 1:
+            raise ValueError("Missing reliable HTML job title")
+
+        title = cls.html_to_text(str(titles[0]))
+
+        if not title:
+            raise ValueError("Missing HTML job title")
+
+        locations = soup.select(".jb-label-location")
+
+        if len(locations) != 1:
+            raise ValueError("Missing reliable HTML location")
+
+        location = cls.html_to_text(str(locations[0]))
+
+        if not location:
+            raise ValueError("Missing HTML location")
+
+        parts = [
+            part.strip()
+            for part in location.split(",")
+            if part.strip()
+        ]
+
+        if not parts or parts[-1].casefold() not in {
+            "egypt", "eg", "egy", "???"
+        }:
+            raise ValueError("Unverified Egyptian location")
+
+        button = soup.select_one("#applyLink_1")
+
+        if button is None:
+            raise ValueError("Missing reliable application control")
+
+        href = button.get("href")
+
+        if href != f"/en/job/apply/index/{job_id}/":
+            raise ValueError("Application job identity mismatch")
+
+        organization = None
+
+        container = titles[0].parent
+
+        if container is not None:
+
+            organizations = container.select(
+                'a[href^="/en/company/"]'
+            )
+
+            if len(organizations) == 1:
+                organization = cls.html_to_text(
+                    str(organizations[0])
+                )
+
+        return {
+            "title": title,
+            "hiringOrganization": {
+                "name": organization
+            },
+            "jobLocation": {
+                "address": {
+                    "addressCountry": "Egypt",
+                    "addressLocality": (
+                        ", ".join(parts[:-1]) or None
+                    ),
+                }
+            },
+        }
+
     @classmethod
     def extract_html_field(cls, soup, selector):
 
@@ -309,6 +401,58 @@ class BaytMapper:
                 return ["remote"]
 
         return None
+
+    @classmethod
+    def resolve_work_modes(
+        cls, posting, description=None, requirements=None
+    ):
+
+        structured = cls.extract_work_modes(posting)
+
+        text = " ".join(
+            value
+            for value in (description, requirements)
+            if isinstance(value, str)
+        )
+
+        hybrid_patterns = (
+            r"\bhybrid\s+(?:position|role|model|work|working)\b",
+            r"\(hybrid\s*[,;:\-\u2013\u2014)]",
+            r"\bwork\s+(?:in|on)\s+a\s+hybrid\b",
+        )
+
+        hybrid = any(
+            re.search(pattern, text, re.IGNORECASE)
+            for pattern in hybrid_patterns
+        )
+
+        office_based = bool(
+            re.search(
+                r"\b(?:fully|entirely)\s+office[- ]based\b",
+                text,
+                re.IGNORECASE,
+            )
+        )
+
+        if hybrid and office_based:
+            return None, "conflicting_text_evidence"
+
+        if hybrid:
+            return ["hybrid"], (
+                "hybrid_over_structured_remote"
+                if structured == ["remote"]
+                else "explicit_hybrid_text"
+            )
+
+        if office_based and structured == ["remote"]:
+            return None, "conflicting_structured_and_text"
+
+        if office_based:
+            return ["on_site"], "explicit_office_based_text"
+
+        return structured, (
+            "structured" if structured else None
+        )
 
     @classmethod
     def extract_experience(cls, posting, raw):
@@ -529,7 +673,44 @@ class BaytMapper:
 
         soup = BeautifulSoup(html, "html.parser")
 
-        posting = cls.extract_job_posting(soup)
+
+        postings = []
+
+        malformed_jsonld = False
+
+        for script in soup.select(
+            'script[type="application/ld+json"]'
+        ):
+
+            try:
+                data = json.loads(script.get_text())
+
+            except json.JSONDecodeError:
+                malformed_jsonld = True
+                continue
+
+            postings.extend(
+                cls.find_job_postings(data)
+            )
+
+        if len(postings) == 1:
+
+            posting = postings[0]
+            mapping_evidence = "json_ld"
+
+        elif not postings and not malformed_jsonld:
+
+            posting = cls.extract_fallback_posting(
+                soup, url
+            )
+
+            mapping_evidence = "verified_html"
+
+        else:
+
+            raise ValueError(
+                "Expected exactly one JobPosting"
+            )
 
         title = cls.clean_text(posting.get("title"))
 
@@ -647,8 +828,17 @@ class BaytMapper:
         if isinstance(identifier, dict):
             identifier_value = identifier.get("value")
 
+        work_modes, work_mode_evidence = (
+            cls.resolve_work_modes(
+                posting,
+                description,
+                "\n".join(requirements or []),
+            )
+        )
+
         raw_payload = {
             "url_job_id": job_id,
+            "mapping_evidence": mapping_evidence,
             "identifier_value": identifier_value,
             "employment_type": posting.get(
                 "employmentType"
@@ -656,6 +846,7 @@ class BaytMapper:
             "job_location_type": posting.get(
                 "jobLocationType"
             ),
+            "work_mode_evidence": work_mode_evidence,
             "experience_requirements": posting.get(
                 "experienceRequirements"
             ),
@@ -680,6 +871,7 @@ class BaytMapper:
 
         return Opportunity(
             source_name="bayt",
+            collected_at=observed_at,
             source_opportunity_id=job_id,
             source_url=url,
             title=title,
@@ -694,7 +886,7 @@ class BaytMapper:
             employment_types=cls.extract_employment_types(
                 posting
             ),
-            work_modes=cls.extract_work_modes(posting),
+            work_modes=work_modes,
             experience_level=career_level,
             experience_level_raw=career_raw,
             experience_years_min=minimum_exp,

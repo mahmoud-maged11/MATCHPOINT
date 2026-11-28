@@ -17,6 +17,10 @@ class DevpostExcludedOpportunity(ValueError):
     pass
 
 
+class DevpostEligibilityUnverified(DevpostExcludedOpportunity):
+    pass
+
+
 def clean_text(value):
 
     if not isinstance(value, str):
@@ -173,25 +177,6 @@ def extract_eligibility(soup):
         "#eligibility-countries-modal-title"
     )
 
-    countries = []
-
-    if country_list:
-
-        countries = [
-            text
-            for item in country_list.select("li")
-            if (text := clean_text(
-                item.get_text(" ", strip=True)
-            ))
-        ]
-
-    excluded_countries = (
-        countries
-        if country_title
-        and "excluded" in country_title.casefold()
-        else []
-    )
-
     egypt_names = {
         "egypt",
         "arab republic of egypt",
@@ -199,51 +184,233 @@ def extract_eligibility(soup):
         "egypt, arab republic of",
     }
 
-    if any(
-        country.casefold() in egypt_names
-        for country in excluded_countries
-    ):
-        raise DevpostExcludedOpportunity(
-            "Egypt is explicitly excluded"
+    def country_key(value):
+
+        normalized = value.casefold()
+
+        if normalized in egypt_names:
+            return "egypt"
+
+        return normalized
+
+    def restriction_kind(value):
+
+        text = (value or "").casefold()
+
+        included = (
+            "only specific countries" in text
+            or "countries included" in text
+            or "territories included" in text
         )
 
-    eligibility_lower = (eligibility or "").casefold()
-    country_title_lower = (country_title or "").casefold()
+        excluded = (
+            "specific countries/territories excluded" in text
+            or "countries excluded" in text
+            or "territories excluded" in text
+        )
 
-    included_only = (
-        "only specific countries" in eligibility_lower
-        or "only specific countries" in country_title_lower
-        or "countries included" in country_title_lower
-        or "territories included" in country_title_lower
+        if included and excluded:
+
+            raise DevpostEligibilityUnverified(
+                "Conflicting country restrictions"
+            )
+
+        if included:
+            return "allow"
+
+        if excluded:
+            return "block"
+
+        return None
+
+    eligibility_kind = restriction_kind(eligibility)
+
+    modal_kind = restriction_kind(country_title)
+
+    if (
+        modal_kind is None
+        and country_title
+        and "excluded" in country_title.casefold()
+    ):
+        modal_kind = "block"
+
+    if (
+        eligibility_kind
+        and modal_kind
+        and eligibility_kind != modal_kind
+    ):
+
+        raise DevpostEligibilityUnverified(
+            "Conflicting country restrictions"
+        )
+
+    kind = eligibility_kind or modal_kind
+
+    modal_countries = []
+
+    if country_list:
+
+        modal_countries = [
+            text
+            for item in country_list.select("li")
+            if (text := clean_text(
+                item.get_text(" ", strip=True)
+            ))
+        ]
+
+    tooltip_lists = []
+
+    for tooltip in soup.select(
+        "#eligibility-list li span[data-tooltip]"
+    ):
+
+        label = clean_text(
+            tooltip.get_text(" ", strip=True)
+        )
+
+        label_kind = restriction_kind(label)
+
+        if label_kind is None:
+            continue
+
+        if kind and kind != label_kind:
+
+            raise DevpostEligibilityUnverified(
+                "Conflicting country restrictions"
+            )
+
+        kind = label_kind
+
+        raw = clean_text(tooltip.get("title"))
+
+        if not raw:
+
+            raise DevpostEligibilityUnverified(
+                "Country tooltip unavailable"
+            )
+
+        parts = [
+            clean_text(part)
+            for part in raw.split(",")
+        ]
+
+        if not parts or any(
+            not part for part in parts
+        ):
+
+            raise DevpostEligibilityUnverified(
+                "Invalid country tooltip"
+            )
+
+        # Preserve the known comma-containing Egypt alias.
+        countries = []
+
+        index = 0
+
+        while index < len(parts):
+
+            current = parts[index]
+
+            if (
+                current.casefold() == "egypt"
+                and index + 1 < len(parts)
+                and parts[index + 1].casefold()
+                    == "arab republic of"
+            ):
+
+                countries.append(
+                    "Egypt, Arab Republic of"
+                )
+
+                index += 2
+
+            else:
+
+                countries.append(current)
+                index += 1
+
+        tooltip_lists.append(countries)
+
+    candidates = []
+
+    if modal_countries:
+        candidates.append(modal_countries)
+
+    candidates.extend(tooltip_lists)
+
+    if candidates:
+
+        reference = {
+            country_key(value)
+            for value in candidates[0]
+        }
+
+        for candidate in candidates[1:]:
+
+            if {
+                country_key(value)
+                for value in candidate
+            } != reference:
+
+                raise DevpostEligibilityUnverified(
+                    "Conflicting country lists"
+                )
+
+        countries = candidates[0]
+
+    else:
+
+        countries = []
+
+    if country_title is None and tooltip_lists:
+
+        country_title = (
+            "Countries included"
+            if kind == "allow"
+            else "Countries excluded"
+        )
+
+    included_countries = (
+        countries if kind == "allow" else []
     )
 
-    excluded_specific = (
-        "specific countries/territories excluded"
-        in eligibility_lower
-        or "excluded" in country_title_lower
+    excluded_countries = (
+        countries if kind == "block" else []
     )
 
-    included_countries = countries if included_only else []
-
-    if included_only:
+    if kind == "allow":
 
         if not included_countries:
-            raise DevpostExcludedOpportunity(
+
+            raise DevpostEligibilityUnverified(
                 "Country allowlist unavailable"
             )
 
         if not any(
-            country.casefold() in egypt_names
+            country_key(country) == "egypt"
             for country in included_countries
         ):
+
             raise DevpostExcludedOpportunity(
                 "Egypt not present in country allowlist"
             )
 
-    if excluded_specific and not excluded_countries:
-        raise DevpostExcludedOpportunity(
-            "Country blocklist unavailable"
-        )
+    if kind == "block":
+
+        if not excluded_countries:
+
+            raise DevpostEligibilityUnverified(
+                "Country blocklist unavailable"
+            )
+
+        if any(
+            country_key(country) == "egypt"
+            for country in excluded_countries
+        ):
+
+            raise DevpostExcludedOpportunity(
+                "Egypt is explicitly excluded"
+            )
 
     return {
         "eligibility": eligibility,

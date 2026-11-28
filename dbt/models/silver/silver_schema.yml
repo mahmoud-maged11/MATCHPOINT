@@ -8,6 +8,10 @@ models:
       arrays (NULL vs []), and computes conservative effective_status per ADR-018 and ADR-047.
       Cross-source deduplication and canonical opportunity_id generation are deferred to Phase 4.
     columns:
+      - name: published_calendar_date
+        description: "Reliable publication calendar date. Exact timestamps use the UTC date; valid date-only values use the original source calendar date. NULL when unresolved."
+      - name: deadline_calendar_date
+        description: "Reliable deadline calendar date. Exact timestamps use the UTC date; valid date-only values use the original source calendar date. NULL when unresolved."
       - name: source_listing_id
         description: "Primary key UUID matching bronze.source_listings.source_listing_id."
         data_tests:
@@ -551,6 +555,10 @@ models:
       source links in all_source_urls, and explicit cross-source conflict indicators without
       silently discarding secondary source values.
     columns:
+      - name: published_calendar_date
+        description: "Reliable publication calendar date. Exact timestamps use the UTC date; valid date-only values use the original source calendar date. NULL when unresolved."
+      - name: deadline_calendar_date
+        description: "Reliable deadline calendar date. Exact timestamps use the UTC date; valid date-only values use the original source calendar date. NULL when unresolved."
       - name: opportunity_id
         description: "Deterministic canonical opportunity UUID."
         data_tests:

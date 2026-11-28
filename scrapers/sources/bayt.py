@@ -10,7 +10,12 @@ import requests
 from bs4 import BeautifulSoup
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 from scrapers.sources.bayt_mapper import BaytMapper
+
+
+class UnsafeJobRedirect(PermissionError):
+    pass
 
 
 class BaytScraper(BaseScraper):
@@ -23,10 +28,16 @@ class BaytScraper(BaseScraper):
 
     def __init__(self, max_jobs=20, max_pages=10):
 
-        if max_jobs <= 0 or max_pages <= 0:
-            raise ValueError(
-                "Collection limits must be positive"
-            )
+        for name, value in (
+            ("max_jobs", max_jobs),
+            ("max_pages", max_pages),
+        ):
+            if value is not None and (
+                type(value) is not int or value <= 0
+            ):
+                raise ValueError(
+                    f"{name} must be a positive integer or None"
+                )
 
         super().__init__("bayt")
 
@@ -70,7 +81,7 @@ class BaytScraper(BaseScraper):
 
         url = self.BASE_URL + "/robots.txt"
 
-        response = self.client.get(url)
+        response = self.client.get(url, allow_redirects=False)
 
         if response.url != url:
             raise PermissionError(
@@ -88,6 +99,7 @@ class BaytScraper(BaseScraper):
 
         self.stats["robots_status"] = response.status_code
 
+
     def fetch_html(self, url):
 
         self.validate_url(url)
@@ -97,27 +109,110 @@ class BaytScraper(BaseScraper):
                 "Robots policy not initialized"
             )
 
-        if not self.robots.can_fetch(self.USER_AGENT, url):
-            raise PermissionError(
-                f"Disallowed URL: {url}"
+        try:
+            original_job_id = BaytMapper.extract_job_id(url)
+
+        except ValueError:
+            original_job_id = None
+
+        current_url = url
+        visited = {url}
+        redirect_count = 0
+
+        while True:
+
+            self.validate_url(current_url)
+
+            if not self.robots.can_fetch(
+                self.USER_AGENT,
+                current_url,
+            ):
+                raise PermissionError(
+                    f"Disallowed URL: {current_url}"
+                )
+
+            response = self.client.get(
+                current_url,
+                allow_redirects=False,
             )
 
-        response = self.client.get(url)
+            if response.url != current_url:
+                raise PermissionError(
+                    "Unexpected response redirect"
+                )
 
-        if response.url != url:
-            raise PermissionError(
-                "Unexpected response redirect"
+            if response.status_code in {
+                301, 302, 303, 307, 308
+            }:
+
+                if original_job_id is None:
+                    raise PermissionError(
+                        "Unexpected listing redirect"
+                    )
+
+                location = response.headers.get(
+                    "Location"
+                )
+
+                if not isinstance(location, str) or not location.strip():
+                    raise UnsafeJobRedirect(
+                        "Missing redirect location"
+                    )
+
+                try:
+
+                    target_url = urljoin(
+                        current_url,
+                        location,
+                    )
+
+                    self.validate_url(target_url)
+
+                    target_job_id = (
+                        BaytMapper.extract_job_id(
+                            target_url
+                        )
+                    )
+
+                except ValueError as error:
+
+                    raise UnsafeJobRedirect(
+                        "Unverified job redirect target"
+                    ) from error
+
+                if target_job_id != original_job_id:
+
+                    raise UnsafeJobRedirect(
+                        "Redirect job identity mismatch"
+                    )
+
+                if target_url in visited:
+                    raise PermissionError(
+                        "Bayt redirect loop"
+                    )
+
+                redirect_count += 1
+
+                if redirect_count > 3:
+                    raise PermissionError(
+                        "Bayt redirect limit exceeded"
+                    )
+
+                visited.add(target_url)
+                current_url = target_url
+
+                continue
+
+            if response.status_code != 200:
+                raise requests.HTTPError(
+                    "Unexpected HTML response status",
+                    response=response,
+                )
+
+            return response.content.decode(
+                "utf-8-sig",
+                errors="strict",
             )
-
-        if response.status_code != 200:
-            raise ValueError(
-                "Unexpected HTML response status"
-            )
-
-        return response.content.decode(
-            "utf-8-sig",
-            errors="strict"
-        )
 
     @staticmethod
     def parse_flag(value):
@@ -131,23 +226,33 @@ class BaytScraper(BaseScraper):
         return None
 
     @classmethod
-    def extract_jobs(cls, html):
+    def extract_jobs_with_diagnostics(
+        cls, html, *, soup=None
+    ):
 
-        soup = BeautifulSoup(html, "html.parser")
+        if soup is None:
+            soup = BeautifulSoup(html, "html.parser")
 
         jobs = {}
+        invalid = 0
 
         def add_job(href, metadata=None):
 
-            if not isinstance(href, str):
+            nonlocal invalid
+
+            if not isinstance(href, str) or not href.strip():
+
+                invalid += 1
                 return
 
-            url = urljoin(cls.BASE_URL, href)
-
             try:
+
+                url = urljoin(cls.BASE_URL, href)
                 job_id = BaytMapper.extract_job_id(url)
 
             except ValueError:
+
+                invalid += 1
                 return
 
             if job_id not in jobs:
@@ -160,14 +265,18 @@ class BaytScraper(BaseScraper):
                 }
 
             if metadata:
-                jobs[job_id].update(metadata)
+
+                for key, value in metadata.items():
+
+                    if value is not None:
+                        jobs[job_id][key] = value
 
         for link in soup.select(
-            'h2 a[data-js-aid="jobID"][href]'
+            'h2 a[data-js-aid="jobID"]'
         ):
 
             add_job(
-                link["href"],
+                link.get("href"),
                 {
                     "is_aggregated": cls.parse_flag(
                         link.get(
@@ -179,7 +288,7 @@ class BaytScraper(BaseScraper):
                             "data-automation-is_external"
                         )
                     ),
-                }
+                },
             )
 
         for script in soup.select(
@@ -187,9 +296,13 @@ class BaytScraper(BaseScraper):
         ):
 
             try:
+
                 data = json.loads(script.get_text())
 
             except json.JSONDecodeError:
+
+                # Unrelated malformed JSON-LD is not
+                # sufficient evidence of listing failure.
                 continue
 
             if not isinstance(data, dict):
@@ -198,45 +311,153 @@ class BaytScraper(BaseScraper):
             if data.get("@type") != "ItemList":
                 continue
 
-            items = data.get("itemListElement", [])
+            items = data.get("itemListElement")
 
             if not isinstance(items, list):
+
+                invalid += 1
                 continue
 
             for item in items:
 
-                if isinstance(item, dict):
-                    add_job(item.get("url"))
+                if not isinstance(item, dict):
 
-        return list(jobs.values())
+                    invalid += 1
+                    continue
+
+                add_job(item.get("url"))
+
+        return list(jobs.values()), invalid
+
+    @classmethod
+    def extract_jobs(cls, html):
+
+        jobs, _ = cls.extract_jobs_with_diagnostics(
+            html
+        )
+
+        return jobs
+
+
+    @classmethod
+    def extract_next_page_with_diagnostics(
+        cls, html, current_page, *, soup=None
+    ):
+
+        if soup is None:
+            soup = BeautifulSoup(html, "html.parser")
+
+        expected = current_page + 1
+        invalid = 0
+        candidates = set()
+        future_pages = set()
+
+        for link in soup.select(
+            "a.jsAjaxLoad, a[rel='next']"
+        ):
+
+            relations = link.get("rel", [])
+
+            if isinstance(relations, str):
+                relations = relations.split()
+
+            explicit_next = "next" in relations
+
+            href = link.get("href")
+
+            if not isinstance(href, str) or not href.strip():
+
+                if explicit_next:
+                    invalid += 1
+
+                continue
+
+            try:
+
+                url = urljoin(cls.BASE_URL, href)
+                parsed = urlparse(url)
+
+            except ValueError:
+
+                invalid += 1
+                continue
+
+            is_listing_path = (
+                parsed.path == "/en/egypt/jobs/"
+            )
+
+            if not explicit_next and not is_listing_path:
+                continue
+
+            try:
+
+                cls.validate_url(url)
+
+            except ValueError:
+
+                invalid += 1
+                continue
+
+            if not is_listing_path:
+
+                invalid += 1
+                continue
+
+            if not parsed.query:
+
+                target_page = 1
+
+            else:
+
+                match = re.fullmatch(
+                    r"page=([1-9][0-9]*)",
+                    parsed.query
+                )
+
+                if not match:
+
+                    invalid += 1
+                    continue
+
+                target_page = int(match.group(1))
+
+            if target_page > current_page:
+
+                future_pages.add(target_page)
+
+            if target_page == expected:
+
+                candidates.add(url)
+
+            elif explicit_next:
+
+                invalid += 1
+
+            # Other valid numbered pages are navigation,
+            # not parsing errors.
+
+        next_url = next(iter(candidates), None)
+
+        if next_url is None and future_pages and invalid == 0:
+
+            invalid += 1
+
+        return next_url, invalid
 
     @classmethod
     def extract_next_page(cls, html, current_page):
 
-        soup = BeautifulSoup(html, "html.parser")
+        next_url, _ = (
+            cls.extract_next_page_with_diagnostics(
+                html, current_page
+            )
+        )
 
-        expected = current_page + 1
-
-        for link in soup.select(
-            "a.jsAjaxLoad[href], a[rel='next'][href]"
-        ):
-
-            url = urljoin(cls.BASE_URL, link["href"])
-
-            parsed = urlparse(url)
-
-            if (
-                parsed.scheme == "https"
-                and parsed.netloc == "www.bayt.com"
-                and parsed.path == "/en/egypt/jobs/"
-                and parsed.query == f"page={expected}"
-                and not parsed.fragment
-            ):
-                return url
-
-        return None
+        return next_url
 
     def scrape(self):
+
+        self.robots = None
 
         self.stats = {
             "robots_status": None,
@@ -245,8 +466,14 @@ class BaytScraper(BaseScraper):
             "details_fetched": 0,
             "duplicates": 0,
             "unavailable": 0,
+            "unsafe_job_redirects": 0,
             "non_egypt": 0,
             "invalid": 0,
+            "invalid_listing_links": 0,
+            "invalid_pagination_links": 0,
+            "repeated_pages": 0,
+            "pagination_overlaps": 0,
+            "overlapping_job_ids": 0,
             "accepted": 0,
             "active": 0,
             "expired": 0,
@@ -256,67 +483,196 @@ class BaytScraper(BaseScraper):
             "external": 0,
         }
 
-        self.load_robots()
-
         opportunities = []
         seen = set()
+        discovered = set()
+        page_signatures = set()
+        consecutive_unsafe_redirects = 0
+
+        def issue(reason):
+
+            if self._running:
+
+                self.mark_collection_issue(reason)
+
+        def finish(reason):
+
+            if (
+                self._running
+                and reason in {
+                    StopReason.SOURCE_EXHAUSTED,
+                    StopReason.REQUESTED_LIMIT,
+                }
+            ):
+
+                self.mark_collection_complete(reason)
+
+            self.logger.info(
+                "Bayt collection stats: %s",
+                self.stats,
+            )
+
+            return opportunities
+
+        try:
+
+            self.load_robots()
+
+        except (
+            requests.RequestException,
+            PermissionError,
+        ):
+
+            issue(StopReason.SOURCE_ERROR)
+            raise
+
+        except ValueError:
+
+            issue(StopReason.PARSING_ERROR)
+            raise
 
         page = 1
         url = self.LISTING_URL
 
-        while (
-            url
-            and page <= self.max_pages
-            and len(opportunities) < self.max_jobs
+        while url and (
+            self.max_pages is None
+            or page <= self.max_pages
         ):
 
-            html = self.fetch_html(url)
+            try:
+
+                html = self.fetch_html(url)
+
+            except (
+                requests.RequestException,
+                PermissionError,
+            ):
+
+                issue(StopReason.SOURCE_ERROR)
+
+                if not self._running or not opportunities:
+                    raise
+
+                return finish(StopReason.SOURCE_ERROR)
+
+            except ValueError:
+
+                issue(StopReason.PARSING_ERROR)
+
+                if not self._running or not opportunities:
+                    raise
+
+                return finish(StopReason.PARSING_ERROR)
 
             self.stats["listing_pages"] += 1
 
-            jobs = self.extract_jobs(html)
+            listing_soup = BeautifulSoup(
+                html, "html.parser"
+            )
+
+            jobs, invalid = (
+                self.extract_jobs_with_diagnostics(
+                    html, soup=listing_soup
+                )
+            )
 
             self.stats["jobs_discovered"] += len(jobs)
+            self.stats["invalid_listing_links"] += invalid
+
+            if invalid:
+
+                issue(StopReason.PARSING_ERROR)
 
             if not jobs:
-                raise ValueError(
-                    f"No job links extracted from page {page}"
-                )
 
-            next_url = self.extract_next_page(
-                html,
-                page
+                issue(StopReason.PARSING_ERROR)
+
+                if not self._running or not opportunities:
+
+                    raise ValueError(
+                        f"No job links extracted from page {page}"
+                    )
+
+                return finish(StopReason.PARSING_ERROR)
+
+            signature = frozenset(
+                job["job_id"] for job in jobs
             )
+
+            if (
+                signature in page_signatures
+                or signature.issubset(discovered)
+            ):
+
+                self.stats["repeated_pages"] += 1
+
+                issue(StopReason.SOURCE_ERROR)
+
+                return finish(StopReason.SOURCE_ERROR)
+
+            overlap = set(signature).intersection(discovered)
+
+            if overlap:
+
+                self.stats["pagination_overlaps"] += 1
+                self.stats["overlapping_job_ids"] += len(overlap)
+
+                if (
+                    self.max_jobs is None
+                    and self.max_pages is None
+                ):
+                    issue(StopReason.SOURCE_ERROR)
+
+            page_signatures.add(signature)
+            discovered.update(signature)
 
             for job in jobs:
 
-                if len(opportunities) >= self.max_jobs:
-                    break
+                if self.max_jobs is not None and len(opportunities) >= self.max_jobs:
+
+                    return finish(
+                        StopReason.REQUESTED_LIMIT
+                    )
 
                 job_id = job["job_id"]
                 job_url = job["url"]
 
                 if job_id in seen:
+
                     self.stats["duplicates"] += 1
                     continue
 
-                seen.add(job_id)
+                # Request failures are not invalid records.
 
                 try:
 
                     detail_html = self.fetch_html(job_url)
 
-                    self.stats["details_fetched"] += 1
+                    consecutive_unsafe_redirects = 0
 
-                    opportunity = BaytMapper.map_job(
-                        job_url,
-                        detail_html,
-                        listing=job,
+                except UnsafeJobRedirect:
+
+                    self.stats["unsafe_job_redirects"] += 1
+
+                    consecutive_unsafe_redirects += 1
+
+                    seen.add(job_id)
+
+                    issue(StopReason.SOURCE_ERROR)
+
+                    self.logger.warning(
+                        "Unsafe Bayt redirect isolated | Job ID: %s",
+                        job_id,
                     )
 
-                    if opportunity is None:
-                        self.stats["non_egypt"] += 1
-                        continue
+                    if consecutive_unsafe_redirects >= 3:
+
+                        if not self._running or not opportunities:
+                            raise
+
+                        return finish(StopReason.SOURCE_ERROR)
+
+                    continue
 
                 except requests.HTTPError as error:
 
@@ -326,10 +682,48 @@ class BaytScraper(BaseScraper):
                         response is not None
                         and response.status_code in (404, 410)
                     ):
+
                         self.stats["unavailable"] += 1
+                        seen.add(job_id)
                         continue
 
-                    raise
+                    issue(StopReason.SOURCE_ERROR)
+
+                    if not self._running or not opportunities:
+                        raise
+
+                    return finish(StopReason.SOURCE_ERROR)
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    issue(StopReason.SOURCE_ERROR)
+
+                    if not self._running or not opportunities:
+                        raise
+
+                    return finish(StopReason.SOURCE_ERROR)
+
+                except ValueError:
+
+                    issue(StopReason.PARSING_ERROR)
+
+                    if not self._running or not opportunities:
+                        raise
+
+                    return finish(StopReason.PARSING_ERROR)
+
+                self.stats["details_fetched"] += 1
+
+                try:
+
+                    opportunity = BaytMapper.map_job(
+                        job_url,
+                        detail_html,
+                        listing=job,
+                    )
 
                 except (ValueError, TypeError) as error:
 
@@ -338,30 +732,64 @@ class BaytScraper(BaseScraper):
                     self.record_invalid(
                         raw_payload=job,
                         error_type=type(error).__name__,
-                        error_message=str(error),
+                        error_message="Invalid Bayt job details",
                         source_url=job_url,
                     )
 
                     continue
 
+                # Reserve identity after successful mapping
+                # or a confirmed filtering decision.
+
+                seen.add(job_id)
+
+                if opportunity is None:
+
+                    self.stats["non_egypt"] += 1
+                    continue
+
                 opportunities.append(opportunity)
 
                 self.stats["accepted"] += 1
-
                 self.stats[opportunity.status] += 1
 
                 if job["is_aggregated"] is True:
+
                     self.stats["aggregated"] += 1
 
                 if job["is_external"] is True:
+
                     self.stats["external"] += 1
+
+            if self.max_jobs is not None and len(opportunities) >= self.max_jobs:
+
+                return finish(StopReason.REQUESTED_LIMIT)
+
+            next_url, invalid = (
+                self.extract_next_page_with_diagnostics(
+                    html, page, soup=listing_soup
+                )
+            )
+
+            self.stats["invalid_pagination_links"] += invalid
+
+            if invalid:
+
+                issue(StopReason.PARSING_ERROR)
+
+            if next_url is None:
+
+                return finish(
+                    StopReason.PARSING_ERROR
+                    if invalid
+                    else StopReason.SOURCE_EXHAUSTED
+                )
+
+            if self.max_pages is not None and page >= self.max_pages:
+
+                return finish(StopReason.REQUESTED_LIMIT)
 
             url = next_url
             page += 1
 
-        self.logger.info(
-            "Bayt collection stats: %s",
-            self.stats
-        )
-
-        return opportunities
+        return finish(StopReason.REQUESTED_LIMIT)

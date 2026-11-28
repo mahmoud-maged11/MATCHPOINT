@@ -20,19 +20,16 @@ SELECT
     o.organization_key,
     o.location_key,
 
-    -- Reliable UTC date foreign keys (NULL when date missing or precision uncertain)
-    CASE
-        WHEN o.published_at IS NOT NULL
-             AND o.published_at_precision IN ('exact', 'date_only') THEN
-            CAST(TO_CHAR(o.published_at AT TIME ZONE 'UTC', 'YYYYMMDD') AS INTEGER)
-        ELSE NULL
-    END AS published_date_key,
-    CASE
-        WHEN o.deadline IS NOT NULL
-             AND o.is_deadline_reliable THEN
-            CAST(TO_CHAR(o.deadline AT TIME ZONE 'UTC', 'YYYYMMDD') AS INTEGER)
-        ELSE NULL
-    END AS deadline_date_key,
+    -- Reliable calendar date foreign keys.
+    -- Exact timestamps use UTC dates; date-only values use source calendar dates.
+    CAST(
+        TO_CHAR(o.published_calendar_date, 'YYYYMMDD')
+        AS INTEGER
+    ) AS published_date_key,
+    CAST(
+        TO_CHAR(o.deadline_calendar_date, 'YYYYMMDD')
+        AS INTEGER
+    ) AS deadline_date_key,
     CAST(TO_CHAR(o.first_seen_at AT TIME ZONE 'UTC', 'YYYYMMDD') AS INTEGER) AS first_seen_date_key,
     CAST(TO_CHAR(o.last_seen_at AT TIME ZONE 'UTC', 'YYYYMMDD') AS INTEGER) AS last_seen_date_key,
 

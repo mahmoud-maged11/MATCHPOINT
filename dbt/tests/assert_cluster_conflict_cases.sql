@@ -102,9 +102,11 @@ fixture_features AS (
 
         NULL::TIMESTAMPTZ AS published_at,
         NULL::TEXT AS published_at_precision,
+        NULL::DATE AS published_calendar_date,
 
         NULL::TIMESTAMPTZ AS deadline,
         NULL::TEXT AS deadline_precision,
+        NULL::DATE AS deadline_calendar_date,
 
         NULL::JSONB AS work_modes,
 

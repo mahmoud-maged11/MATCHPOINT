@@ -9,6 +9,10 @@ from urllib.parse import urlparse, urlunparse
 from bs4 import BeautifulSoup
 
 from scrapers.models import Opportunity
+from scrapers.utils.dates import (
+    is_date_only,
+    normalize_source_datetime,
+)
 
 
 class EgyincsMapper:
@@ -170,7 +174,9 @@ class EgyincsMapper:
         return mapped or ["unknown"]
 
     @classmethod
-    def extract_opportunity_type(cls, terms, title, endpoint):
+    def extract_opportunity_type(
+        cls, terms, title, endpoint, *, description=None
+    ):
 
         if endpoint == "lp_course":
             return "training"
@@ -208,6 +214,58 @@ class EgyincsMapper:
             r"(?:^|\s)(?:مؤتمر|ندوة)(?:\s|$)",
             title_lower,
         )
+
+
+        job_title = re.search(
+            r"\bjobs?\b|(?:^|\s)\u0648\u0638\u064a\u0641\u0629(?:\s|$)",
+            title_lower,
+        )
+
+        explicit_internship = re.search(
+            r"\binternships?\b|\bintern\b|"
+            r"(?:^|\s)\u062a\u062f\u0631\u064a\u0628(?:\s|$)",
+            title_lower,
+        )
+
+        graduate_description = re.search(
+            r"\bgraduate\s+(?:development\s+|trainee\s+)?"
+            r"program(?:me)?\b",
+            (description or "")[:1500].casefold(),
+        )
+
+        if (
+            mapped == {"job", "internship"}
+            and "graduate-internship" in slugs
+            and slugs.issubset(
+                set(cls.TYPE_MAPPING)
+                | set(cls.EMPLOYMENT_MAPPING)
+            )
+            and graduate_description
+        ):
+            return "graduate_program"
+
+        if mapped == {"job", "internship"}:
+
+            if explicit_internship and not job_title:
+                return "internship"
+
+            if job_title and not explicit_internship:
+                return "job"
+
+        employment_only = bool(slugs) and slugs.issubset(
+            cls.EMPLOYMENT_MAPPING
+        )
+
+        if not mapped and (not slugs or employment_only):
+
+            if (
+                job_title
+                and not explicit_internship
+                and not graduate_program
+                and not scholarship_title
+                and not event_title
+            ):
+                return "job"
 
         if mapped == {"internship", "scholarship"}:
             if scholarship_title:
@@ -256,6 +314,87 @@ class EgyincsMapper:
 
                 if event_title:
                     return "event"
+
+
+        # Evidence-based ambiguous type fallback.
+        # Do not infer a type from audience labels alone.
+        description_head = (description or "")[:1500].casefold()
+
+        known_slugs = (
+            set(cls.TYPE_MAPPING)
+            | set(cls.EMPLOYMENT_MAPPING)
+        )
+
+        if endpoint == "jobs" and slugs.issubset(known_slugs):
+
+            practical_program = re.search(
+                r"\u0628\u0631\u0646\u0627\u0645\u062c\s+"
+                r"\u062a\u062f\u0631\u064a\u0628\s+"
+                r"\u0639\u0645\u0644\u064a"
+                r"|\bpractical\s+internship\s+program(?:me)?\b",
+                description_head,
+            )
+
+            explicit_trainee_role = re.search(
+                r"\btrainee\b|"
+                r"\u062a\u062d\u062a\s+"
+                r"\u0627\u0644\u062a\u062f\u0631\u064a\u0628",
+                description_head,
+            )
+
+            mixed_opportunity_title = re.search(
+                r"\b(?:internships?\s*(?:and|&)\s*jobs?"
+                r"|jobs?\s*(?:and|&)\s*internships?)\b|"
+                r"\u062a\u062f\u0631\u064a\u0628\u0627\u062a\s*"
+                r"\u0648\u0648\u0638\u0627\u0626\u0641|"
+                r"\u062a\u0648\u0638\u064a\u0641\s*"
+                r"\u0648\u062a\u062f\u0631\u064a\u0628",
+                title_lower,
+            )
+
+            if (
+                mapped == {"job", "internship"}
+                and "student-internship" in slugs
+                and practical_program
+                and explicit_trainee_role
+                and not mixed_opportunity_title
+                and not graduate_program
+                and not graduate_description
+                and not scholarship_title
+                and not event_title
+            ):
+                return "internship"
+
+            educational_title = re.search(
+                r"\bonline\s+sessions?\b|"
+                r"\u0645\u062d\u0627\u0643\u0627\u0629",
+                title_lower,
+            )
+
+            lectures = re.search(
+                r"\blectures?\b|"
+                r"\u0627\u0644\u0645\u062d\u0627\u0636\u0631\u0627\u062a|"
+                r"\u0645\u062d\u0627\u0636\u0631\u0627\u062a",
+                description_head,
+            )
+
+            simulation = re.search(
+                r"\bsimulation\b|"
+                r"\u0645\u062d\u0627\u0643\u0627\u0629",
+                description_head,
+            )
+
+            if (
+                mapped == {"internship", "freelance"}
+                and educational_title
+                and lectures
+                and simulation
+                and not job_title
+                and not graduate_program
+                and not scholarship_title
+                and not event_title
+            ):
+                return "training"
 
         raise ValueError(
             "Missing or ambiguous opportunity type"
@@ -367,6 +506,9 @@ class EgyincsMapper:
         if not isinstance(value, str) or not value.strip():
             return None
 
+        if is_date_only(value):
+            return None
+
         try:
             parsed = datetime.fromisoformat(
                 value.replace("Z", "+00:00")
@@ -379,7 +521,7 @@ class EgyincsMapper:
 
             return parsed.astimezone(timezone.utc)
 
-        except ValueError:
+        except (ValueError, OverflowError):
             return None
 
     @staticmethod
@@ -527,10 +669,47 @@ class EgyincsMapper:
         terms = cls.extract_terms(record)
 
         opportunity_type = cls.extract_opportunity_type(
-            terms, title, endpoint
+            terms,
+            title,
+            endpoint,
+            description=description,
         )
 
         published_at = cls.extract_published_at(record)
+
+        published_at_raw = record.get("date_gmt")
+
+        published_at_precision = (
+            "exact" if published_at is not None else "unknown"
+        )
+
+        if isinstance(published_at_raw, str):
+            if re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                published_at_raw.strip(),
+            ):
+                _, published_at_precision = (
+                    normalize_source_datetime(published_at_raw)
+                )
+        else:
+            published_at_raw = None
+
+        deadline_raw = cls.clean_html(
+            record.get("felan-jobs_closing_date")
+        )
+
+        deadline, deadline_precision = (
+            normalize_source_datetime(deadline_raw)
+        )
+
+        # Warehouse date-only contract requires ISO calendar dates.
+        if deadline_precision == "date_only":
+            if not re.fullmatch(
+                r"[0-9]{4}-[0-9]{2}-[0-9]{2}",
+                deadline_raw,
+            ):
+                deadline_precision = "unknown"
+
 
         experience_level, experience_raw = (
             cls.extract_experience(terms)
@@ -574,6 +753,12 @@ class EgyincsMapper:
         majors = cls.term_names(
             terms, "jobs-major"
         )
+
+        requirements = " | ".join(
+            major
+            for major in majors
+            if major.strip() != "\u063a\u064a\u0631 \u0645\u062d\u062f\u062f"
+        ) or None
 
         application_url = cls.extract_application_url(
             record
@@ -625,17 +810,13 @@ class EgyincsMapper:
             experience_years_max=experience_max,
             education_level=" | ".join(education) or None,
             required_skills=skills,
-            requirements=" | ".join(majors) or None,
+            requirements=requirements,
             published_at=published_at,
-            published_at_raw=record.get("date_gmt"),
-            published_at_precision=(
-                "exact" if published_at else "unknown"
-            ),
-            deadline=None,
-            deadline_raw=cls.clean_html(
-                record.get("felan-jobs_closing_date")
-            ),
-            deadline_precision="unknown",
+            published_at_raw=published_at_raw,
+            published_at_precision=published_at_precision,
+            deadline=deadline,
+            deadline_raw=deadline_raw,
+            deadline_precision=deadline_precision,
             collected_at=(
                     observed_at or datetime.now(timezone.utc)
             ),

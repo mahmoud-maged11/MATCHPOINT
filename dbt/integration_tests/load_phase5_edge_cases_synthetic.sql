@@ -22,7 +22,7 @@ BEGIN
     IF current_setting('matchpoint.expected_test_database', TRUE) IS NULL
        OR current_setting('matchpoint.expected_test_database', TRUE) NOT IN (
            'matchpoint_test',
-           'matchpoint_dbt_review_test'
+           'matchpoint_dbt_review_test', 'matchpoint_date_contract_test', 'matchpoint_date_contract_utf8_test'
        )
        OR current_database() IS DISTINCT FROM
            current_setting('matchpoint.expected_test_database', TRUE) THEN
@@ -106,8 +106,8 @@ VALUES
      'Edge Case Extreme Deadline 9999 Architect', 'EdgeOrg Beta', 'job', 'Alexandria, Egypt',
      '["hybrid"]'::JSONB, '["full_time"]'::JSONB, '["Architecture"]'::JSONB, '["PostgreSQL"]'::JSONB,
      NULL, NULL, NULL, NULL,
-     '2026-11-15T00:00:00Z', '2026-11-15', 'date_only',
-     '9999-12-31T00:00:00Z', '9999-12-31', 'date_only',
+     NULL, '2026-11-15', 'date_only',
+     NULL, '9999-12-31', 'date_only',
      'active', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('b', 64), 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec2_deadline_9999"}'::JSONB),
 
@@ -128,8 +128,8 @@ VALUES
      'Edge Case Expired DateOnly Deadline Intern', 'EdgeOrg Delta', 'internship', 'Giza, Egypt',
      '["hybrid"]'::JSONB, '["part_time"]'::JSONB, '["Internship"]'::JSONB, NULL,
      NULL, NULL, NULL, NULL,
-     '2025-06-01T00:00:00Z', '2025-06-01', 'date_only',
-     '2025-06-30T00:00:00Z', '2025-06-30', 'date_only',
+     NULL, '2025-06-01', 'date_only',
+     NULL, '2025-06-30', 'date_only',
      'active', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('d', 64), 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec4_expired_date_only"}'::JSONB),
 
@@ -139,8 +139,8 @@ VALUES
      'Edge Case Explicitly Closed Specialist', 'EdgeOrg Epsilon', 'job', 'Cairo, Egypt',
      '["on_site"]'::JSONB, '["full_time"]'::JSONB, NULL, NULL,
      NULL, NULL, NULL, NULL,
-     '2026-11-10T00:00:00Z', '2026-11-10', 'date_only',
-     '2028-06-30T00:00:00Z', '2028-06-30', 'date_only',
+     NULL, '2026-11-10', 'date_only',
+     NULL, '2028-06-30', 'date_only',
      'closed', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('e', 64), 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec5_closed"}'::JSONB),
 
@@ -161,7 +161,7 @@ VALUES
      'Edge Case Null Location Consultant', 'EdgeOrg Eta', 'job', NULL,
      '["remote"]'::JSONB, '["contract"]'::JSONB, NULL, NULL,
      NULL, NULL, NULL, NULL,
-     '2026-11-16T00:00:00Z', '2026-11-16', 'date_only',
+     NULL, '2026-11-16', 'date_only',
      NULL, NULL, NULL,
      'active', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('0', 63) || '1', 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec7_null_location"}'::JSONB),
@@ -172,7 +172,7 @@ VALUES
      'Edge Case Confirmed Empty Arrays Fellow', 'EdgeOrg Theta', 'scholarship', 'Cairo, Egypt',
      '[]'::JSONB, '[]'::JSONB, '[]'::JSONB, '[]'::JSONB,
      NULL, NULL, NULL, NULL,
-     '2026-11-17T00:00:00Z', '2026-11-17', 'date_only',
+     NULL, '2026-11-17', 'date_only',
      NULL, NULL, NULL,
      'active', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('0', 63) || '2', 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec8_empty_arrays"}'::JSONB),
@@ -183,7 +183,7 @@ VALUES
      'MENA AI Builders Hackathon 2026', 'Devpost Community', 'hackathon', 'Online',
      '["remote"]'::JSONB, NULL, '["AI & Machine Learning"]'::JSONB, '["Python", "Docker"]'::JSONB,
      NULL, NULL, NULL, NULL,
-     '2026-11-12T00:00:00Z', '2026-11-12', 'date_only',
+     NULL, '2026-11-12', 'date_only',
      '2027-02-28T23:59:00Z', '2027-02-28T23:59:00Z', 'exact',
      'active', '2026-11-21T09:02:00Z', '2026-11-21T09:02:00Z', '2026-11-21T09:02:00Z',
      REPEAT('0', 63) || '3', 1, 1, '11111111-1111-4111-8111-000000000201'::UUID, '{"edge_case": "ec9_devpost"}'::JSONB),
@@ -194,8 +194,8 @@ VALUES
      'UNV Digital Data Literacy Volunteer Egypt', 'UN Volunteers Egypt', 'volunteering', 'Cairo, Egypt',
      '["remote"]'::JSONB, NULL, '["Community Development"]'::JSONB, '["Excel"]'::JSONB,
      NULL, NULL, NULL, NULL,
-     '2026-11-14T00:00:00Z', '2026-11-14', 'date_only',
-     '2027-03-15T00:00:00Z', '2027-03-15', 'date_only',
+     NULL, '2026-11-14', 'date_only',
+     NULL, '2027-03-15', 'date_only',
      'active', '2026-11-21T09:11:00Z', '2026-11-21T09:11:00Z', '2026-11-21T09:11:00Z',
      REPEAT('0', 63) || '4', 1, 1, '11111111-1111-4111-8111-000000000202'::UUID, '{"edge_case": "ec9_unv"}'::JSONB),
 
@@ -205,7 +205,7 @@ VALUES
      'Edge Case Multi Arrangement One-Sided Salary Freelancer', 'EdgeOrg Iota', 'freelance', 'Cairo, Egypt',
      '["hybrid", "remote"]'::JSONB, '["part_time", "freelance"]'::JSONB, '["Consulting"]'::JSONB, '["SQL"]'::JSONB,
      12000, NULL, 'EGP', 'monthly',
-     '2026-11-19T00:00:00Z', '2026-11-19', 'date_only',
+     NULL, '2026-11-19', 'date_only',
      NULL, NULL, NULL,
      'active', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z', '2026-11-21T10:01:00Z',
      REPEAT('0', 63) || '5', 1, 1, '11111111-1111-4111-8111-000000000203'::UUID, '{"edge_case": "ec10_multi_arrangement_salary"}'::JSONB);

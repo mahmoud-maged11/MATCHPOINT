@@ -67,7 +67,7 @@ fixture_base AS (
 
 ),
 
-fixture_features AS (
+fixture_features_raw AS (
 
     SELECT
 
@@ -252,6 +252,20 @@ fixture_features AS (
 
     FROM fixture_base
 
+),
+
+fixture_features AS (
+    SELECT
+        f.*,
+        CASE
+            WHEN published_at_precision = 'exact'
+            THEN (published_at AT TIME ZONE 'UTC')::DATE
+        END AS published_calendar_date,
+        CASE
+            WHEN deadline_precision = 'exact'
+            THEN (deadline AT TIME ZONE 'UTC')::DATE
+        END AS deadline_calendar_date
+    FROM fixture_features_raw f
 ),
 
 actual AS (

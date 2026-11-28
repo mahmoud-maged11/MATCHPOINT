@@ -1,9 +1,11 @@
 from datetime import datetime, timezone
+from itertools import count
 
 import requests
 from requests.adapters import HTTPAdapter
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 
 from scrapers.sources.un_volunteers_mapper import (
     map_un_volunteers_opportunity,
@@ -11,6 +13,10 @@ from scrapers.sources.un_volunteers_mapper import (
     is_target_assignment,
     UNVExcludedOpportunity
 )
+
+
+class UNVResponseError(requests.HTTPError, RuntimeError):
+    pass
 
 
 class UNVolunteersScraper(BaseScraper):
@@ -44,6 +50,11 @@ class UNVolunteersScraper(BaseScraper):
             ("max_pages", max_pages)
         ):
 
+            if value is None and name in {
+                "max_jobs", "max_pages"
+            }:
+                continue
+
             if type(value) is not int or value <= 0:
                 raise ValueError(
                     f"{name} must be a positive integer"
@@ -59,6 +70,14 @@ class UNVolunteersScraper(BaseScraper):
 
         self.stats = {
             "listing_pages": 0,
+            "repeated_pages": 0,
+            "overlapping_pages": 0,
+            "pagination_anomalies": 0,
+            "processed": 0,
+            "unprocessed": 0,
+            "last_reported_total": None,
+            "total_changes": 0,
+            "stop_reason": None,
             "discovered": 0,
             "duplicates": 0,
             "excluded": 0,
@@ -101,9 +120,10 @@ class UNVolunteersScraper(BaseScraper):
         response.raise_for_status()
 
         if response.status_code != 200:
-            raise RuntimeError(
+            raise UNVResponseError(
                 f"Unexpected HTTP status: "
-                f"{response.status_code}"
+                f"{response.status_code}",
+                response=response,
             )
 
         content_type = response.headers.get(
@@ -115,7 +135,15 @@ class UNVolunteersScraper(BaseScraper):
                 "Expected JSON response"
             )
 
-        data = response.json()
+        try:
+
+            data = response.json()
+
+        except requests.exceptions.JSONDecodeError as error:
+
+            raise ValueError(
+                "Invalid UNV JSON response"
+            ) from error
 
         if not isinstance(data, dict):
             raise ValueError(
@@ -123,8 +151,9 @@ class UNVolunteersScraper(BaseScraper):
             )
 
         if data.get("isSuccess") is not True:
-            raise RuntimeError(
-                "UNV API reported failure"
+            raise UNVResponseError(
+                "UNV API reported failure",
+                response=response,
             )
 
         value = data.get("value")
@@ -170,7 +199,10 @@ class UNVolunteersScraper(BaseScraper):
                 "Invalid assignment total"
             )
 
-        if value.get("skip") != skip:
+        if (
+            type(value.get("skip")) is not int
+            or value["skip"] != skip
+        ):
             raise ValueError(
                 "Pagination offset mismatch"
             )
@@ -222,7 +254,7 @@ class UNVolunteersScraper(BaseScraper):
                 )
             },
             error_type=type(error).__name__,
-            error_message=str(error),
+            error_message="Invalid UNV assignment record",
             source_url=source_url
         )
 
@@ -247,9 +279,15 @@ class UNVolunteersScraper(BaseScraper):
 
                 return None
 
-            seen.add(record_id)
+            if type(listing.get("isOnsite")) is not bool:
+
+                raise ValueError(
+                    "Invalid assignment modality"
+                )
 
             if not is_target_assignment(listing):
+
+                seen.add(record_id)
 
                 self.stats["excluded"] += 1
 
@@ -278,6 +316,8 @@ class UNVolunteersScraper(BaseScraper):
                 and response.status_code in (404, 410)
             ):
 
+                seen.add(record_id)
+
                 self.stats["details_missing"] += 1
 
                 return None
@@ -296,6 +336,8 @@ class UNVolunteersScraper(BaseScraper):
 
         except UNVExcludedOpportunity as error:
 
+            seen.add(record_id)
+
             self.stats["excluded"] += 1
 
             self.logger.info(
@@ -313,6 +355,8 @@ class UNVolunteersScraper(BaseScraper):
             )
 
             return None
+
+        seen.add(record_id)
 
         self.stats["accepted"] += 1
 
@@ -334,44 +378,218 @@ class UNVolunteersScraper(BaseScraper):
 
         opportunities = []
         seen = set()
+        page_signatures = set()
+        discovered_ids = set()
+
+        strict_pagination = (
+            self.max_jobs is None
+            or self.max_pages is None
+        )
 
         skip = 0
 
-        for _ in range(self.max_pages):
+        def finish(reason):
 
-            records, total = self.fetch_listing(
-                skip
+            self.stats["stop_reason"] = reason.value
+
+            if self._running:
+
+                if reason in {
+                    StopReason.SOURCE_EXHAUSTED,
+                    StopReason.REQUESTED_LIMIT,
+                }:
+
+                    self.mark_collection_complete(reason)
+
+                else:
+
+                    self.mark_collection_issue(reason)
+
+            self.logger.info(
+                "UNV collection stats: %s",
+                self.stats,
             )
 
+            return opportunities
+
+        pages = (
+            count(1)
+            if self.max_pages is None
+            else range(1, self.max_pages + 1)
+        )
+
+        for page in pages:
+
+            try:
+
+                records, total = self.fetch_listing(skip)
+
+            except (
+                requests.RequestException,
+                PermissionError,
+            ):
+
+                finish(StopReason.SOURCE_ERROR)
+
+                if not self._running:
+                    raise
+
+                return opportunities
+
+            except ValueError:
+
+                finish(StopReason.PARSING_ERROR)
+
+                if not self._running:
+                    raise
+
+                return opportunities
+
+            previous_total = self.stats[
+                "last_reported_total"
+            ]
+
+            if (
+                previous_total is not None
+                and previous_total != total
+            ):
+
+                self.stats["total_changes"] += 1
+
+            self.stats["last_reported_total"] = total
+
+            self.stats["unprocessed"] = len(records)
+
+            if strict_pagination:
+
+                if (
+                    previous_total is not None
+                    and previous_total != total
+                ):
+                    self.stats["pagination_anomalies"] += 1
+                    return finish(StopReason.PARSING_ERROR)
+
+                expected_count = min(
+                    self.page_size,
+                    max(0, total - skip),
+                )
+
+                if len(records) != expected_count:
+                    self.stats["pagination_anomalies"] += 1
+                    return finish(StopReason.PARSING_ERROR)
+
+            # Reject contradictory pagination evidence.
+
             if not records:
-                break
+
+                return finish(
+                    StopReason.PARSING_ERROR
+                    if skip < total
+                    else StopReason.SOURCE_EXHAUSTED
+                )
+
+            if (
+                len(records) > self.page_size
+                or skip >= total
+                or skip + len(records) > total
+            ):
+
+                return finish(StopReason.PARSING_ERROR)
+
+            # Detect repeated pages independently of
+            # successful mapping and eligibility.
+
+            signature = frozenset(
+                listing["id"]
+                for listing in records
+                if isinstance(listing, dict)
+                and type(listing.get("id")) is int
+                and listing["id"] > 0
+            )
+
+            if signature and signature in page_signatures:
+
+                self.stats["repeated_pages"] += 1
+
+                return finish(StopReason.SOURCE_ERROR)
+
+            if signature:
+
+                page_signatures.add(signature)
+
+            if strict_pagination:
+
+                if len(signature) != len(records):
+                    self.stats["pagination_anomalies"] += 1
+                    return finish(StopReason.PARSING_ERROR)
+
+                if discovered_ids.intersection(signature):
+                    self.stats["overlapping_pages"] += 1
+                    return finish(StopReason.PARSING_ERROR)
+
+                discovered_ids.update(signature)
 
             for listing in records:
 
-                opportunity = self.collect_record(
-                    listing,
-                    seen
-                )
+                try:
 
-                if opportunity is not None:
-                    opportunities.append(
-                        opportunity
+                    opportunity = self.collect_record(
+                        listing,
+                        seen,
                     )
 
-                if len(opportunities) >= self.max_jobs:
-                    break
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
 
-            if len(opportunities) >= self.max_jobs:
-                break
+                    finish(StopReason.SOURCE_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return opportunities
+
+                except ValueError:
+
+                    finish(StopReason.PARSING_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return opportunities
+
+                self.stats["processed"] += 1
+                self.stats["unprocessed"] -= 1
+
+                if opportunity is not None:
+
+                    opportunities.append(opportunity)
+
+                if (
+                    self.max_jobs is not None
+                    and len(opportunities) >= self.max_jobs
+                ):
+
+                    return finish(
+                        StopReason.REQUESTED_LIMIT
+                    )
 
             skip += len(records)
 
             if skip >= total:
-                break
 
-        self.logger.info(
-            "UNV collection stats: %s",
-            self.stats
-        )
+                return finish(
+                    StopReason.SOURCE_EXHAUSTED
+                )
 
-        return opportunities
+            if (
+                self.max_pages is not None
+                and page >= self.max_pages
+            ):
+
+                return finish(
+                    StopReason.REQUESTED_LIMIT
+                )
+
+        return finish(StopReason.REQUESTED_LIMIT)

@@ -48,6 +48,18 @@ WITH staged AS (
         deadline_raw,
         deadline_precision,
 
+        {{ reliable_calendar_date(
+            'published_at',
+            'published_at_raw',
+            'published_at_precision'
+        ) }} AS published_calendar_date,
+
+        {{ reliable_calendar_date(
+            'deadline',
+            'deadline_raw',
+            'deadline_precision'
+        ) }} AS deadline_calendar_date,
+
         -- Observed status preserved from Bronze
         observed_status,
         source_status_raw,
@@ -160,9 +172,11 @@ enriched AS (
         lt.deadline,
         lt.deadline_raw,
         lt.deadline_precision,
+        lt.published_calendar_date,
+        lt.deadline_calendar_date,
+
         (
-            lt.deadline IS NOT NULL
-            AND lt.deadline_precision IN ('exact', 'date_only')
+            lt.deadline_calendar_date IS NOT NULL
         ) AS is_deadline_reliable,
 
         -- Lifecycle reconciliation (ADR-018 and ADR-047)
@@ -176,28 +190,38 @@ enriched AS (
         lt.source_status_raw,
         CASE
             WHEN lt.observed_status IN ('closed', 'expired') THEN lt.observed_status
-            WHEN lt.deadline IS NOT NULL
-                AND lt.deadline_precision = 'exact'
-                AND lt.deadline < CURRENT_TIMESTAMP THEN 'expired'
-            WHEN lt.deadline IS NOT NULL
-                AND lt.deadline_precision = 'date_only'
-                AND (
-                    (DATE_TRUNC('day', lt.deadline AT TIME ZONE 'UTC') + INTERVAL '36 hours')
-                    AT TIME ZONE 'UTC'
-                ) < CURRENT_TIMESTAMP THEN 'expired'
+            WHEN lt.deadline_precision = 'exact'
+                AND {{ deadline_has_passed(
+                    'lt.deadline',
+                    'lt.deadline_calendar_date',
+                    'lt.deadline_precision',
+                    'CURRENT_TIMESTAMP'
+                ) }} THEN 'expired'
+            WHEN lt.deadline_precision = 'date_only'
+                AND {{ deadline_has_passed(
+                    'lt.deadline',
+                    'lt.deadline_calendar_date',
+                    'lt.deadline_precision',
+                    'CURRENT_TIMESTAMP'
+                ) }} THEN 'expired'
             ELSE lt.observed_status
         END AS effective_status,
         CASE
             WHEN lt.observed_status IN ('closed', 'expired') THEN 'observed_source_status'
-            WHEN lt.deadline IS NOT NULL
-                AND lt.deadline_precision = 'exact'
-                AND lt.deadline < CURRENT_TIMESTAMP THEN 'exact_deadline_passed'
-            WHEN lt.deadline IS NOT NULL
-                AND lt.deadline_precision = 'date_only'
-                AND (
-                    (DATE_TRUNC('day', lt.deadline AT TIME ZONE 'UTC') + INTERVAL '36 hours')
-                    AT TIME ZONE 'UTC'
-                ) < CURRENT_TIMESTAMP THEN 'date_only_deadline_passed_conservative'
+            WHEN lt.deadline_precision = 'exact'
+                AND {{ deadline_has_passed(
+                    'lt.deadline',
+                    'lt.deadline_calendar_date',
+                    'lt.deadline_precision',
+                    'CURRENT_TIMESTAMP'
+                ) }} THEN 'exact_deadline_passed'
+            WHEN lt.deadline_precision = 'date_only'
+                AND {{ deadline_has_passed(
+                    'lt.deadline',
+                    'lt.deadline_calendar_date',
+                    'lt.deadline_precision',
+                    'CURRENT_TIMESTAMP'
+                ) }} THEN 'date_only_deadline_passed_conservative'
             ELSE 'observed_source_status_retained'
         END AS effective_status_reason,
         CURRENT_TIMESTAMP AS lifecycle_evaluated_at,

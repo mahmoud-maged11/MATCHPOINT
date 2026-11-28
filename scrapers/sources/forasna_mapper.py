@@ -279,15 +279,6 @@ class ForasnaMapper:
 
         return None, None
 
-        match = re.search(
-            rf"(?:أكثر من|اكثر من|على الأقل)\s*({number})",
-            value,
-        )
-
-        if match:
-            return float(match.group(1)), None
-
-        return None, None
 
     @classmethod
     def extract_salary(cls, fields, posting):
@@ -454,7 +445,15 @@ class ForasnaMapper:
         return known or ["unknown"]
 
     @classmethod
-    def map_job(cls, html, source_url, observed_at=None):
+    def map_job(
+        cls,
+        html,
+        source_url,
+        observed_at=None,
+        *,
+        soup=None,
+        posting=None,
+    ):
 
         observed_at = (
             observed_at or datetime.now(timezone.utc)
@@ -463,9 +462,12 @@ class ForasnaMapper:
         source_url = cls.extract_source_url(source_url)
         source_id = cls.extract_source_id(source_url)
 
-        soup = BeautifulSoup(html, "lxml")
+        if soup is None:
+            soup = BeautifulSoup(html, "lxml")
 
-        posting = cls.extract_job_posting(soup)
+        if posting is None:
+            posting = cls.extract_job_posting(soup)
+
         fields = cls.extract_fields(soup)
 
         identifier = posting.get("identifier")
@@ -588,6 +590,14 @@ class ForasnaMapper:
             "application_status": source_status_raw,
         }
 
+        raw_employment = posting.get("employmentType")
+
+        employment_values = (
+            raw_employment
+            if isinstance(raw_employment, list)
+            else [raw_employment]
+        )
+
         return Opportunity(
             source_name="forasna",
             source_opportunity_id=source_id,
@@ -598,7 +608,7 @@ class ForasnaMapper:
             opportunity_type=(
                 "internship"
                 if (
-                        posting.get("employmentType") == "INTERN"
+                        "INTERN" in employment_values
                         or fields.get("نوع الوظيفة") == "تدريب"
                 )
                 else "freelance"

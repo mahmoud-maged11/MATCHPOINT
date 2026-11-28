@@ -1,4 +1,5 @@
 import re
+from itertools import count
 import requests
 
 from urllib.parse import urljoin
@@ -7,6 +8,7 @@ from urllib.robotparser import RobotFileParser
 from bs4 import BeautifulSoup
 
 from scrapers.base_scraper import BaseScraper
+from scrapers.collection_result import StopReason
 from scrapers.sources.itida_mapper import ITIDAMapper
 
 
@@ -31,11 +33,17 @@ class ITIDAScraper(BaseScraper):
         max_pages=10
     ):
 
-        if max_jobs < 1:
-            raise ValueError("max_jobs must be positive")
+        for name, value in (
+            ("max_jobs", max_jobs),
+            ("max_pages", max_pages),
+        ):
 
-        if max_pages < 1:
-            raise ValueError("max_pages must be positive")
+            if value is not None and (
+                type(value) is not int or value < 1
+            ):
+                raise ValueError(
+                    f"{name} must be a positive integer or None"
+                )
 
         super().__init__("itida")
 
@@ -82,11 +90,12 @@ class ITIDAScraper(BaseScraper):
         return response.text
 
     @classmethod
-    def extract_program_links(cls, html):
+    def extract_program_links_with_diagnostics(cls, html):
 
         soup = ITIDAMapper.clean_soup(html)
 
         links = {}
+        unsupported = set()
 
         for anchor in soup.select("a[href]"):
 
@@ -109,40 +118,73 @@ class ITIDAScraper(BaseScraper):
                 continue
 
             if slug not in ITIDAMapper.PROGRAM_TYPES:
+                unsupported.add(slug)
                 continue
 
             links.setdefault(slug, url)
 
-        return list(links.values())
+        return list(links.values()), sorted(unsupported)
+
+    @classmethod
+    def extract_program_links(cls, html):
+
+        links, _ = cls.extract_program_links_with_diagnostics(
+            html
+        )
+
+        return links
+
+    @classmethod
+    def extract_event_links_with_diagnostics(cls, soup):
+
+        links = {}
+        invalid = 0
+
+        for card in soup.select("main h4.listingHeader"):
+
+            anchors = card.select("a[href]")
+
+            if not anchors:
+                invalid += 1
+                continue
+
+            for anchor in anchors:
+
+                try:
+
+                    href = anchor["href"]
+
+                    if not href.strip():
+                        raise ValueError("Missing event URL")
+
+                    url = urljoin(cls.EVENTS_URL, href)
+
+                    url = ITIDAMapper.normalize_url(url)
+
+                    page_type, slug = (
+                        ITIDAMapper.extract_identity(url)
+                    )
+
+                    if page_type != "event":
+                        raise ValueError("Invalid event identity")
+
+                except ValueError:
+
+                    invalid += 1
+                    continue
+
+                links.setdefault(slug, url)
+
+        return list(links.values()), invalid
 
     @classmethod
     def extract_event_links(cls, soup):
 
-        links = {}
+        links, _ = cls.extract_event_links_with_diagnostics(
+            soup
+        )
 
-        for anchor in soup.select(
-            "main h4.listingHeader a[href]"
-        ):
-
-            url = urljoin(
-                cls.EVENTS_URL,
-                anchor["href"]
-            )
-
-            try:
-                url = ITIDAMapper.normalize_url(url)
-
-                page_type, slug = (
-                    ITIDAMapper.extract_identity(url)
-                )
-
-            except ValueError:
-                continue
-
-            if page_type == "event":
-                links.setdefault(slug, url)
-
-        return list(links.values())
+        return links
 
     @staticmethod
     def extract_postback(soup, page):
@@ -285,8 +327,6 @@ class ITIDAScraper(BaseScraper):
             self.stats["duplicates"] += 1
             return None
 
-        seen_ids.add(identity)
-
         try:
             html = self.fetch_html(url)
 
@@ -327,81 +367,208 @@ class ITIDAScraper(BaseScraper):
 
             return None
 
+        seen_ids.add(identity)
+
         self.stats["accepted"] += 1
         self.stats[page_type + "s"] += 1
         self.stats[opportunity.status] += 1
 
         return opportunity
 
+    def report_scope(self, scope, reason, results):
+
+        completed = reason in {
+            StopReason.SOURCE_EXHAUSTED,
+            StopReason.REQUESTED_LIMIT,
+        }
+
+        self.stats["scope_results"][scope] = {
+            "completed": completed,
+            "stop_reason": reason.value,
+            "accepted": len(results),
+        }
+
+        if not completed and self._running:
+
+            self.mark_collection_issue(reason)
+
+        return results
+
     def collect_programs(self, limit, seen_ids):
 
         results = []
 
+        def finish(reason):
+
+            return self.report_scope(
+                "programs", reason, results
+            )
+
         if limit == 0:
+
+            return finish(StopReason.REQUESTED_LIMIT)
+
+        try:
+
+            html = self.fetch_html(self.PROGRAMS_URL)
+
+        except (requests.RequestException, PermissionError):
+
+            finish(StopReason.SOURCE_ERROR)
+
+            if not self._running:
+                raise
+
             return results
 
-        html = self.fetch_html(
-            self.PROGRAMS_URL
+        except ValueError:
+
+            finish(StopReason.PARSING_ERROR)
+
+            if not self._running:
+                raise
+
+            return results
+
+        links, unsupported = (
+            self.extract_program_links_with_diagnostics(html)
         )
 
-        links = self.extract_program_links(html)
+        self.stats["unsupported_programs"] = unsupported
+
+        if unsupported:
+            self.logger.warning(
+                f"Unclassified ITIDA programs: {unsupported}"
+            )
 
         self.stats["programs_discovered"] = len(links)
 
+        if not links:
+
+            return finish(StopReason.PARSING_ERROR)
+
         for url in links:
 
-            if len(results) >= limit:
-                break
+            if limit is not None and len(results) >= limit:
 
-            opportunity = self.collect_detail(
-                url, seen_ids
-            )
+                return finish(StopReason.REQUESTED_LIMIT)
+
+            try:
+
+                opportunity = self.collect_detail(
+                    url, seen_ids
+                )
+
+            except (
+                requests.RequestException,
+                PermissionError,
+            ):
+
+                finish(StopReason.SOURCE_ERROR)
+
+                if not self._running:
+                    raise
+
+                return results
+
+            except ValueError:
+
+                finish(StopReason.PARSING_ERROR)
+
+                if not self._running:
+                    raise
+
+                return results
 
             if opportunity is not None:
+
                 results.append(opportunity)
 
-        return results
+        return finish(StopReason.SOURCE_EXHAUSTED)
 
     def collect_events(self, limit, seen_ids):
 
         results = []
+        issue = None
+
+        def finish(reason):
+
+            return self.report_scope(
+                "events",
+                issue or reason,
+                results,
+            )
 
         if limit == 0:
+
+            return finish(StopReason.REQUESTED_LIMIT)
+
+        try:
+
+            html = self.fetch_html(self.EVENTS_URL)
+
+        except (requests.RequestException, PermissionError):
+
+            finish(StopReason.SOURCE_ERROR)
+
+            if not self._running:
+                raise
+
             return results
 
-        html = self.fetch_html(
-            self.EVENTS_URL
-        )
+        except ValueError:
+
+            finish(StopReason.PARSING_ERROR)
+
+            if not self._running:
+                raise
+
+            return results
 
         soup = BeautifulSoup(html, "lxml")
-
         discovered = set()
 
-        for page in range(1, self.max_pages + 1):
+        for page in (
+            count(1)
+            if self.max_pages is None
+            else range(1, self.max_pages + 1)
+        ):
 
             self.stats["event_pages"] += 1
 
-            links = self.extract_event_links(soup)
+            links, invalid = (
+                self.extract_event_links_with_diagnostics(
+                    soup
+                )
+            )
+
+            self.stats["invalid_event_links"] += invalid
+
+            if invalid:
+
+                issue = issue or StopReason.PARSING_ERROR
 
             if not links:
 
-                if page == 1:
-                    raise ValueError(
-                        "No event links found"
-                    )
-
-                break
+                return finish(StopReason.PARSING_ERROR)
 
             new_links = []
 
             for url in links:
 
-                _, slug = (
-                    ITIDAMapper.extract_identity(url)
-                )
+                _, slug = ITIDAMapper.extract_identity(url)
 
                 if slug in discovered:
+
                     self.stats["duplicates"] += 1
+                    self.stats["pagination_overlaps"] += 1
+
+                    if (
+                        self.max_jobs is None
+                        and self.max_pages is None
+                    ):
+                        issue = issue or StopReason.SOURCE_ERROR
+
                     continue
 
                 discovered.add(slug)
@@ -412,52 +579,154 @@ class ITIDAScraper(BaseScraper):
             )
 
             if not new_links:
-                break
 
-            # Preserve the listing session and its state
-            # before requesting individual detail pages.
-            remaining = limit - len(results)
+                return finish(StopReason.SOURCE_ERROR)
+
+            remaining = (
+                None
+                if limit is None
+                else limit - len(results)
+            )
 
             next_soup = None
+            next_checked = False
+            pagination_issue = None
+
+            # Preserve ASP.NET listing session state.
 
             if (
-                page < self.max_pages
-                and len(new_links) < remaining
-            ):
-                next_soup = self.fetch_next_event_page(
-                    soup, page + 1
+                (
+                    self.max_pages is None
+                    or page < self.max_pages
                 )
+                and (
+                    remaining is None
+                    or len(new_links) < remaining
+                )
+            ):
+
+                next_checked = True
+
+                try:
+
+                    next_soup = self.fetch_next_event_page(
+                        soup, page + 1
+                    )
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    if not self._running:
+                        raise
+
+                    pagination_issue = StopReason.SOURCE_ERROR
+
+                except ValueError:
+
+                    if not self._running:
+                        raise
+
+                    pagination_issue = StopReason.PARSING_ERROR
+
+            # Never bypass an explicit access denial.
+            # A failed prefetch stops further requests.
+
+            if pagination_issue is not None:
+
+                return finish(pagination_issue)
 
             for url in new_links:
 
-                if len(results) >= limit:
-                    break
+                if limit is not None and len(results) >= limit:
 
-                opportunity = self.collect_detail(
-                    url, seen_ids
-                )
+                    return finish(StopReason.REQUESTED_LIMIT)
+
+                try:
+
+                    opportunity = self.collect_detail(
+                        url, seen_ids
+                    )
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    finish(StopReason.SOURCE_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return results
+
+                except ValueError:
+
+                    finish(StopReason.PARSING_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return results
 
                 if opportunity is not None:
+
                     results.append(opportunity)
 
-            if len(results) >= limit:
-                break
+            if limit is not None and len(results) >= limit:
 
-            if page >= self.max_pages:
-                break
+                return finish(StopReason.REQUESTED_LIMIT)
 
-            if next_soup is None:
+            if (
+                self.max_pages is not None
+                and page >= self.max_pages
+            ):
 
-                next_soup = self.fetch_next_event_page(
-                    soup, page + 1
+                reason = (
+                    StopReason.REQUESTED_LIMIT
+                    if self.extract_postback(soup, page + 1)
+                    else StopReason.SOURCE_EXHAUSTED
                 )
 
+                return finish(reason)
+
+            if not next_checked:
+
+                try:
+
+                    next_soup = self.fetch_next_event_page(
+                        soup, page + 1
+                    )
+
+                except (
+                    requests.RequestException,
+                    PermissionError,
+                ):
+
+                    finish(StopReason.SOURCE_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return results
+
+                except ValueError:
+
+                    finish(StopReason.PARSING_ERROR)
+
+                    if not self._running:
+                        raise
+
+                    return results
+
             if next_soup is None:
-                break
+
+                return finish(StopReason.SOURCE_EXHAUSTED)
 
             soup = next_soup
 
-        return results
+        return finish(StopReason.REQUESTED_LIMIT)
 
     def scrape(self):
 
@@ -465,38 +734,97 @@ class ITIDAScraper(BaseScraper):
             "programs_discovered": 0,
             "events_discovered": 0,
             "event_pages": 0,
+            "pagination_overlaps": 0,
+            "unsupported_programs": [],
             "details_fetched": 0,
             "duplicates": 0,
             "unavailable": 0,
             "invalid": 0,
+            "invalid_event_links": 0,
             "accepted": 0,
             "programs": 0,
             "events": 0,
             "active": 0,
             "closed": 0,
             "expired": 0,
-            "unknown": 0
+            "unknown": 0,
+            "scope_results": {},
         }
 
-        self.load_robots()
+        try:
+
+            self.load_robots()
+
+        except (requests.RequestException, PermissionError):
+
+            if self._running:
+
+                self.mark_collection_issue(
+                    StopReason.SOURCE_ERROR
+                )
+
+            raise
 
         seen_ids = set()
 
-        program_limit = self.max_jobs // 2
-
-        programs = self.collect_programs(
-            program_limit,
-            seen_ids
+        program_limit = (
+            None
+            if self.max_jobs is None
+            else self.max_jobs // 2
         )
 
-        event_limit = self.max_jobs - len(programs)
+        programs = self.collect_programs(
+            program_limit, seen_ids
+        )
+
+        program_report = self.stats["scope_results"][
+            "programs"
+        ]
+
+        # Stop source-wide requests after a source error.
+
+        if (
+            program_report["stop_reason"]
+            == StopReason.SOURCE_ERROR.value
+        ):
+
+            return programs
+
+        event_limit = (
+            None
+            if self.max_jobs is None
+            else self.max_jobs - len(programs)
+        )
 
         events = self.collect_events(
-            event_limit,
-            seen_ids
+            event_limit, seen_ids
         )
 
         results = programs + events
+
+        reports = list(
+            self.stats["scope_results"].values()
+        )
+
+        if (
+            self._running
+            and all(
+                report["completed"]
+                for report in reports
+            )
+        ):
+
+            reason = (
+                StopReason.REQUESTED_LIMIT
+                if any(
+                    report["stop_reason"]
+                    == StopReason.REQUESTED_LIMIT.value
+                    for report in reports
+                )
+                else StopReason.SOURCE_EXHAUSTED
+            )
+
+            self.mark_collection_complete(reason)
 
         self.logger.info(
             f"ITIDA collection stats: {self.stats}"

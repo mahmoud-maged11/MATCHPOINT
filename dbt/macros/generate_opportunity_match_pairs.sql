@@ -114,14 +114,10 @@ tier2_composite AS (
             'opportunity_type', a.opportunity_type,
             'location_match_signal', a.location_match_signal,
             'temporal_basis', CASE
-                WHEN a.published_at IS NOT NULL
-                    AND a.published_at_precision IN ('exact', 'date_only')
-                    AND b.published_at IS NOT NULL
-                    AND b.published_at_precision IN ('exact', 'date_only') THEN 'published_at_within_45d'
-                WHEN a.deadline IS NOT NULL
-                    AND a.deadline_precision IN ('exact', 'date_only')
-                    AND b.deadline IS NOT NULL
-                    AND b.deadline_precision IN ('exact', 'date_only') THEN 'deadline_within_14d'
+                WHEN {{ is_reliable_temporal_evidence('a.published_at', 'a.published_calendar_date', 'a.published_at_precision') }}
+                    AND {{ is_reliable_temporal_evidence('b.published_at', 'b.published_calendar_date', 'b.published_at_precision') }} THEN 'published_at_within_45d'
+                WHEN {{ is_reliable_temporal_evidence('a.deadline', 'a.deadline_calendar_date', 'a.deadline_precision') }}
+                    AND {{ is_reliable_temporal_evidence('b.deadline', 'b.deadline_calendar_date', 'b.deadline_precision') }} THEN 'deadline_within_14d'
                 ELSE 'first_seen_at_within_45d'
             END
         ) AS pair_evidence
@@ -155,36 +151,44 @@ tier2_composite AS (
        -- Reliable publication date compatibility guard (when both reliable)
        AND (
            NOT (
-               a.published_at IS NOT NULL
-               AND a.published_at_precision IN ('exact', 'date_only')
-               AND b.published_at IS NOT NULL
-               AND b.published_at_precision IN ('exact', 'date_only')
+               {{ is_reliable_temporal_evidence('a.published_at', 'a.published_calendar_date', 'a.published_at_precision') }}
+               AND {{ is_reliable_temporal_evidence('b.published_at', 'b.published_calendar_date', 'b.published_at_precision') }}
            )
-           OR ABS(EXTRACT(EPOCH FROM (a.published_at - b.published_at))) <= (45 * 86400)
+           OR {{ temporal_pair_within_window(
+               'a.published_at',
+               'a.published_calendar_date',
+               'a.published_at_precision',
+               'b.published_at',
+               'b.published_calendar_date',
+               'b.published_at_precision',
+               45
+           ) }}
        )
        -- Reliable deadline compatibility guard (when both reliable)
        AND (
            NOT (
-               a.deadline IS NOT NULL
-               AND a.deadline_precision IN ('exact', 'date_only')
-               AND b.deadline IS NOT NULL
-               AND b.deadline_precision IN ('exact', 'date_only')
+               {{ is_reliable_temporal_evidence('a.deadline', 'a.deadline_calendar_date', 'a.deadline_precision') }}
+               AND {{ is_reliable_temporal_evidence('b.deadline', 'b.deadline_calendar_date', 'b.deadline_precision') }}
            )
-           OR ABS(EXTRACT(EPOCH FROM (a.deadline - b.deadline))) <= (14 * 86400)
+           OR {{ temporal_pair_within_window(
+               'a.deadline',
+               'a.deadline_calendar_date',
+               'a.deadline_precision',
+               'b.deadline',
+               'b.deadline_calendar_date',
+               'b.deadline_precision',
+               14
+           ) }}
        )
        -- Fallback observation recency guard when neither reliable published_at nor reliable deadline is shared
        AND (
            (
-               a.published_at IS NOT NULL
-               AND a.published_at_precision IN ('exact', 'date_only')
-               AND b.published_at IS NOT NULL
-               AND b.published_at_precision IN ('exact', 'date_only')
+               {{ is_reliable_temporal_evidence('a.published_at', 'a.published_calendar_date', 'a.published_at_precision') }}
+               AND {{ is_reliable_temporal_evidence('b.published_at', 'b.published_calendar_date', 'b.published_at_precision') }}
            )
            OR (
-               a.deadline IS NOT NULL
-               AND a.deadline_precision IN ('exact', 'date_only')
-               AND b.deadline IS NOT NULL
-               AND b.deadline_precision IN ('exact', 'date_only')
+               {{ is_reliable_temporal_evidence('a.deadline', 'a.deadline_calendar_date', 'a.deadline_precision') }}
+               AND {{ is_reliable_temporal_evidence('b.deadline', 'b.deadline_calendar_date', 'b.deadline_precision') }}
            )
            OR ABS(EXTRACT(EPOCH FROM (a.first_seen_at - b.first_seen_at))) <= (45 * 86400)
        )

@@ -276,8 +276,7 @@ def resolve_status(detail, observed_at):
     # exact closing timezone is not established.
 
     if (
-        observed_at.date()
-        > deadline_date + timedelta(days=2)
+        (observed_at.date() - deadline_date).days > 2
     ):
         raise UNVExcludedOpportunity(
             "Assignment deadline has passed"

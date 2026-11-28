@@ -54,9 +54,11 @@ WITH ranked_members AS (
         sl.published_at,
         sl.published_at_raw,
         sl.published_at_precision,
+        sl.published_calendar_date,
         sl.deadline,
         sl.deadline_raw,
         sl.deadline_precision,
+        sl.deadline_calendar_date,
         sl.is_deadline_reliable,
         sl.observed_status,
         sl.effective_status,
@@ -146,10 +148,19 @@ best_published AS (
         published_at,
         published_at_raw,
         published_at_precision,
+        published_calendar_date,
         ROW_NUMBER() OVER (
             PARTITION BY opportunity_id
             ORDER BY
-                (CASE WHEN published_at_precision = 'exact' THEN 1 WHEN published_at_precision = 'date_only' THEN 2 ELSE 3 END) ASC,
+                CASE
+                    WHEN published_calendar_date IS NOT NULL
+                         AND published_at_precision = 'exact'
+                    THEN 1
+                    WHEN published_calendar_date IS NOT NULL
+                         AND published_at_precision = 'date_only'
+                    THEN 2
+                    ELSE 3
+                END ASC,
                 member_priority_rank ASC
         ) AS rn
     FROM ranked_members
@@ -162,11 +173,20 @@ best_deadline AS (
         deadline,
         deadline_raw,
         deadline_precision,
+        deadline_calendar_date,
         is_deadline_reliable,
         ROW_NUMBER() OVER (
             PARTITION BY opportunity_id
             ORDER BY
-                (CASE WHEN deadline_precision = 'exact' THEN 1 WHEN deadline_precision = 'date_only' THEN 2 ELSE 3 END) ASC,
+                CASE
+                    WHEN deadline_calendar_date IS NOT NULL
+                         AND deadline_precision = 'exact'
+                    THEN 1
+                    WHEN deadline_calendar_date IS NOT NULL
+                         AND deadline_precision = 'date_only'
+                    THEN 2
+                    ELSE 3
+                END ASC,
                 member_priority_rank ASC
         ) AS rn
     FROM ranked_members
@@ -376,10 +396,11 @@ group_agg AS (
             COUNT(DISTINCT work_modes_signature)
             FILTER (WHERE work_modes_signature IS NOT NULL) > 1
         ) AS conflict_work_modes,
-        (
-            COUNT(DISTINCT deadline)
-            FILTER (WHERE deadline IS NOT NULL AND deadline_precision IN ('exact', 'date_only')) > 1
-        ) AS conflict_deadline,
+        {{ has_deadline_conflict(
+            'deadline',
+            'deadline_calendar_date',
+            'deadline_precision'
+        ) }} AS conflict_deadline,
 
         -- Lineage timestamps across all merged sources
         MIN(first_seen_at) AS first_seen_at,
@@ -486,9 +507,11 @@ SELECT
     bp.published_at,
     bp.published_at_raw,
     bp.published_at_precision,
+    bp.published_calendar_date,
     bd.deadline,
     bd.deadline_raw,
     bd.deadline_precision,
+    bd.deadline_calendar_date,
     COALESCE(bd.is_deadline_reliable, FALSE) AS is_deadline_reliable,
 
     -- Lifecycle status (canonical conservative status + primary status + full observed set)
